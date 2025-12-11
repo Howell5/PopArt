@@ -9,6 +9,12 @@ export const useKeyboardShortcuts = (editor: Editor | null) => {
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
       const modifier = isMac ? e.metaKey : e.ctrlKey
 
+      // Check if focus is on an input element
+      const activeElement = document.activeElement
+      const isInputFocused = activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement ||
+        activeElement?.getAttribute('contenteditable') === 'true'
+
       // Zoom in: Cmd/Ctrl + Plus or Cmd/Ctrl + =
       if (modifier && (e.key === '+' || e.key === '=')) {
         e.preventDefault()
@@ -33,8 +39,8 @@ export const useKeyboardShortcuts = (editor: Editor | null) => {
         editor.zoomToFit({ animation: { duration: 220 } })
       }
 
-      // Delete selected: Delete or Backspace
-      if (e.key === 'Delete' || e.key === 'Backspace') {
+      // Delete selected: Delete or Backspace (only when not in input)
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !isInputFocused) {
         const selectedShapes = editor.getSelectedShapes()
         if (selectedShapes.length > 0 && !e.repeat) {
           e.preventDefault()
@@ -42,8 +48,8 @@ export const useKeyboardShortcuts = (editor: Editor | null) => {
         }
       }
 
-      // Select all: Cmd/Ctrl + A
-      if (modifier && e.key === 'a') {
+      // Select all: Cmd/Ctrl + A (only when not in input)
+      if (modifier && e.key === 'a' && !isInputFocused) {
         e.preventDefault()
         editor.selectAll()
       }
