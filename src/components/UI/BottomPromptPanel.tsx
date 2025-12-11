@@ -1,0 +1,183 @@
+import { useState, useEffect, useCallback } from 'react'
+import { useEditor, TLImageShape } from 'tldraw'
+import { useAIStore } from '../../stores/useAIStore'
+import { addImageToCanvas } from '../../utils/imageAssets'
+
+interface SelectedImage {
+  id: string
+  src: string
+}
+
+export default function BottomPromptPanel() {
+  const editor = useEditor()
+  const { isGenerating, generateImage } = useAIStore()
+
+  const [prompt, setPrompt] = useState('')
+  const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([])
+
+  // Track selected images (supports multiple selection)
+  const updateSelection = useCallback(() => {
+    const selectedShapes = editor.getSelectedShapes()
+
+    // Filter for image shapes only
+    const imageShapes = selectedShapes.filter(
+      (shape): shape is TLImageShape => shape.type === 'image'
+    )
+
+    if (imageShapes.length > 0) {
+      const images: SelectedImage[] = []
+
+      for (const shape of imageShapes) {
+        const assetId = shape.props.assetId
+        if (assetId) {
+          const asset = editor.getAsset(assetId)
+          if (asset && asset.type === 'image' && asset.props.src) {
+            images.push({
+              id: shape.id,
+              src: asset.props.src,
+            })
+          }
+        }
+      }
+
+      setSelectedImages(images)
+    } else {
+      setSelectedImages([])
+    }
+  }, [editor])
+
+  useEffect(() => {
+    updateSelection()
+    const dispose = editor.store.listen(() => updateSelection())
+    return () => dispose()
+  }, [editor, updateSelection])
+
+  const handleGenerate = async () => {
+    if (!prompt.trim() || isGenerating) return
+
+    try {
+      // Generate image with prompt
+      const dataUrl = await generateImage(prompt)
+
+      // Convert data URL to File
+      const response = await fetch(dataUrl)
+      const blob = await response.blob()
+      const file = new File([blob], 'generated-image.png', { type: 'image/png' })
+
+      // Add to canvas
+      await addImageToCanvas(editor, file)
+
+      // Clear prompt after successful generation
+      setPrompt('')
+    } catch (err) {
+      console.error('Failed to generate image:', err)
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleGenerate()
+    }
+  }
+
+  const clearSelectedImages = () => {
+    editor.selectNone()
+    setSelectedImages([])
+  }
+
+  const removeSelectedImage = (imageId: string) => {
+    // Deselect just this one image
+    const currentIds = editor.getSelectedShapeIds()
+    const newIds = currentIds.filter((id) => id !== imageId)
+    editor.setSelectedShapes(newIds)
+  }
+
+  return (
+    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden min-w-[500px] max-w-[700px]">
+        {/* Selected Images Preview */}
+        {selectedImages.length > 0 && (
+          <div className="px-4 pt-4">
+            <div className="flex items-center gap-2 flex-wrap">
+              {selectedImages.map((image) => (
+                <div key={image.id} className="relative inline-block">
+                  <img
+                    src={image.src}
+                    alt="Selected"
+                    className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                  />
+                  <button
+                    onClick={() => removeSelectedImage(image.id)}
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors"
+                    title="Remove from selection"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              {selectedImages.length > 1 && (
+                <button
+                  onClick={clearSelectedImages}
+                  className="px-3 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                  title="Clear all selections"
+                >
+                  清除全部
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Input Area */}
+        <div className="flex items-end gap-3 p-4">
+          <div className="flex-1">
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder={selectedImages.length > 0 ? "描述你想要的变化..." : "描述你想要生成的图片..."}
+              className="w-full px-4 py-3 text-base bg-transparent border-none outline-none resize-none placeholder-gray-400"
+              rows={1}
+              disabled={isGenerating}
+              style={{ minHeight: '48px', maxHeight: '120px' }}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement
+                target.style.height = 'auto'
+                target.style.height = Math.min(target.scrollHeight, 120) + 'px'
+              }}
+            />
+          </div>
+
+          {/* Generate Button */}
+          <button
+            onClick={handleGenerate}
+            disabled={!prompt.trim() || isGenerating}
+            className="w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center hover:bg-purple-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex-shrink-0"
+            title="Generate"
+          >
+            {isGenerating ? (
+              <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            )}
+          </button>
+        </div>
+
+        {/* Hint */}
+        {isGenerating && (
+          <div className="px-4 pb-3">
+            <p className="text-xs text-gray-500">正在生成中，请稍候...</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

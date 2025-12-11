@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Reset default styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
+    'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure full height for root elements */
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Custom tldraw layout - Move toolbar to left side vertically centered */
+.tldraw-layout-custom .tlui-layout {
+  /* Override default layout */
+}
+
+/* Move the main toolbar to left side, vertically centered */
+.tldraw-layout-custom .tlui-toolbar {
+  position: fixed !important;
+  left: 16px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  bottom: auto !important;
+  flex-direction: column !important;
+}
+
+/* Adjust toolbar items for vertical layout */
+
+.tldraw-layout-custom .tlui-toolbar__tools {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+.tldraw-layout-custom .tlui-toolbar__inner {
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.tldraw-layout-custom .tlui-toolbar__tools__list {
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.tldraw-layout-custom .tlui-toolbar__extras {
+  flex-direction: column !important;
+}
+
+/* Hide elements we don't need */
+.tldraw-layout-custom .tlui-menu-zone,
+.tldraw-layout-custom .tlui-navigation-zone,
+.tldraw-layout-custom .tlui-help-menu {
+  /* display: none !important; */
+  z-index: 40 !important;
+}
+
+/* Adjust style panel position */
+.tldraw-layout-custom .tlui-style-panel__wrapper {
+  position: fixed !important;
+  right: 16px !important;
+  top: 16px !important;
+}
+
+/* Hide the action bar (undo/redo etc) - we have our own */
+.tldraw-layout-custom .tlui-actions-menu {
+  display: none !important;
+}
+
+/* Make sure our floating elements appear above tldraw UI */
+.tldraw-layout-custom .tlui-layout__top {
+  z-index: 100 !important;
+}
