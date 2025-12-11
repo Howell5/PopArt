@@ -28,11 +28,17 @@ export const createImageAssetStore = (): TLAssetStore => {
   }
 }
 
+// Options for adding image to canvas
+interface AddImageOptions {
+  // Custom position. If anchorLeft is true, x is left edge; otherwise x is center
+  position?: { x: number; y: number; anchorLeft?: boolean }
+}
+
 // Helper function to add an image to the canvas
-export const addImageToCanvas = async (editor: Editor, file: File) => {
+export const addImageToCanvas = async (editor: Editor, file: File, options?: AddImageOptions) => {
   try {
-    // Get the center of the viewport
-    const { x, y } = editor.getViewportScreenCenter()
+    // Get position: custom or center of viewport
+    const { x, y } = options?.position ?? editor.getViewportScreenCenter()
 
     // Create asset ID (must start with "asset:" prefix)
     const assetId = `asset:${uniqueId()}` as any
@@ -79,10 +85,15 @@ export const addImageToCanvas = async (editor: Editor, file: File) => {
       height *= scale
     }
 
+    // Calculate final position
+    const anchorLeft = options?.position?.anchorLeft ?? false
+    const finalX = anchorLeft ? x : x - width / 2
+    const finalY = y - height / 2
+
     editor.createShape({
       type: 'image',
-      x: x - width / 2,
-      y: y - height / 2,
+      x: finalX,
+      y: finalY,
       props: {
         assetId,
         w: width,

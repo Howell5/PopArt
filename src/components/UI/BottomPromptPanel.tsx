@@ -64,6 +64,28 @@ export default function BottomPromptPanel() {
         ? selectedImages.map(img => img.src)
         : undefined
 
+      // Calculate position for new image (next to reference images if any)
+      let position: { x: number; y: number } | undefined
+      if (selectedImages.length > 0) {
+        // Find the rightmost edge of selected images
+        const selectedShapes = editor.getSelectedShapes().filter(
+          (shape): shape is TLImageShape => shape.type === 'image'
+        )
+        if (selectedShapes.length > 0) {
+          let maxRight = -Infinity
+          let centerY = 0
+          for (const shape of selectedShapes) {
+            const right = shape.x + (shape.props.w ?? 0)
+            if (right > maxRight) {
+              maxRight = right
+              centerY = shape.y + (shape.props.h ?? 0) / 2
+            }
+          }
+          // Place new image 30px to the right of the rightmost image
+          position = { x: maxRight + 30, y: centerY, anchorLeft: true }
+        }
+      }
+
       // Generate image with prompt and optional reference images
       const dataUrl = await generateImage(prompt, { referenceImages })
 
@@ -72,8 +94,8 @@ export default function BottomPromptPanel() {
       const blob = await response.blob()
       const file = new File([blob], 'generated-image.png', { type: 'image/png' })
 
-      // Add to canvas
-      await addImageToCanvas(editor, file)
+      // Add to canvas (near reference images or at viewport center)
+      await addImageToCanvas(editor, file, position ? { position } : undefined)
 
       // Clear prompt after successful generation
       setPrompt('')

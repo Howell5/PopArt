@@ -12,12 +12,12 @@ export interface ImageModel {
 }
 
 export const IMAGE_MODELS: ImageModel[] = [
-  {
-    id: 'doubao-seedream-4-5-250928',
-    name: 'Seedream 4.5',
-    description: '最新版，画质最佳',
-    maxSize: '4K',
-  },
+  // {
+  //   id: 'doubao-seedream-4-5-250928',
+  //   name: 'Seedream 4.5',
+  //   description: '最新版，画质最佳',
+  //   maxSize: '4K',
+  // },
   {
     id: 'doubao-seedream-4-0-250828',
     name: 'Seedream 4.0',
@@ -38,7 +38,9 @@ export const DEFAULT_MODEL = IMAGE_MODELS[0]
 const getApiKey = () => {
   const key = import.meta.env.VITE_ARK_API_KEY
   if (!key) {
-    throw new Error('VITE_ARK_API_KEY is not configured. Please add your Volcano Ark API key to .env.local')
+    throw new Error(
+      'VITE_ARK_API_KEY is not configured. Please add your Volcano Ark API key to .env.local'
+    )
   }
   return key
 }
@@ -101,9 +103,9 @@ export const generateImage = async (params: GenerateImageParams): Promise<Genera
     // Call Seedream via OpenAI-compatible images.generate endpoint
     const response = (await client.images.generate({
       ...requestBody,
-      extra_body: {
-        watermark: true,
-      },
+      // extra_body: {
+      //   watermark: true,
+      // },
     } as any)) as any
 
     // Get the base64 data from response
