@@ -90,9 +90,7 @@ export const addImageToCanvas = async (editor: Editor, file: File) => {
       },
     })
 
-    console.log('Image added to canvas:', file.name)
   } catch (error) {
-    console.error('Failed to add image to canvas:', error)
     throw error
   }
 }

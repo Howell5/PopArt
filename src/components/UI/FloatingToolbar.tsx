@@ -130,10 +130,7 @@ export default function FloatingToolbar() {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-
-      console.log('Image downloaded')
-    } catch (error) {
-      console.error('Failed to download image:', error)
+    } catch {
       alert('Failed to download image')
     }
   }
@@ -215,10 +212,7 @@ export default function FloatingToolbar() {
 
       // Select the new shape
       editor.select(newShapeId as any)
-
-      console.log(`Image upscaled ${scale}x successfully - new image created`)
     } catch (error) {
-      console.error('Upscale failed:', error)
       alert(error instanceof Error ? error.message : 'Failed to upscale image')
     } finally {
       setIsProcessing(false)
@@ -291,10 +285,7 @@ export default function FloatingToolbar() {
 
       // Select the new shape
       editor.select(newShapeId as any)
-
-      console.log('Background removed successfully - new image created')
     } catch (error) {
-      console.error('Background removal failed:', error)
       alert(error instanceof Error ? error.message : 'Failed to remove background')
     } finally {
       setIsProcessing(false)

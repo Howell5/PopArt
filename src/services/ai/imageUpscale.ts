@@ -35,8 +35,6 @@ export const upscaleImage = async (params: UpscaleImageParams): Promise<Upscaled
   try {
     const replicate = createClient()
 
-    console.log(`Upscaling image with Real-ESRGAN ${params.scale}x...`)
-
     // Call Real-ESRGAN model
     const output = (await replicate.run('nightmareai/real-esrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc3a73abf41610695738c1d7b', {
       input: {
@@ -45,8 +43,6 @@ export const upscaleImage = async (params: UpscaleImageParams): Promise<Upscaled
         face_enhance: false, // Disable face enhancement for general images
       },
     })) as any as string
-
-    console.log('Upscale successful:', output)
 
     if (!output) {
       throw new Error('No output from upscale API')

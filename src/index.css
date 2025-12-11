@@ -87,6 +87,8 @@ body,
 .tldraw-layout-custom .tlui-help-menu {
   /* display: none !important; */
   z-index: 40 !important;
+  top: 16px !important;
+  left: 120px !important;
 }
 
 /* Adjust style panel position */

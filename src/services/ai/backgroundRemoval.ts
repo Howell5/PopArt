@@ -28,8 +28,6 @@ export const removeBackground = async (
   params: RemoveBackgroundParams
 ): Promise<ProcessedImage> => {
   try {
-    console.log('Removing background with remove.bg...')
-
     // Convert data URL to blob
     const response = await fetch(params.imageDataUrl)
     const blob = await response.blob()
@@ -70,8 +68,6 @@ export const removeBackground = async (
       reader.onerror = reject
       reader.readAsDataURL(resultBlob)
     })
-
-    console.log('Background removal successful')
 
     return {
       base64,

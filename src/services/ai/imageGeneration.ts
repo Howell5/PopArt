@@ -46,7 +46,6 @@ export const generateImage = async (params: GenerateImageParams): Promise<Genera
       fullPrompt += `\n\nNegative prompt: ${params.negativePrompt}`
     }
 
-    console.log('Generating image with SeedDream 4.0, prompt:', fullPrompt)
 
     // Call SeedDream via OpenAI-compatible images.generate endpoint
     // Using 'as any' because Ark API supports extra parameters not in OpenAI SDK types
@@ -59,8 +58,6 @@ export const generateImage = async (params: GenerateImageParams): Promise<Genera
         watermark: true, // Add watermark
       },
     } as any)) as any
-
-    console.log('SeedDream API response:', response)
 
     // Get the base64 data from response
     if (!response.data || response.data.length === 0) {

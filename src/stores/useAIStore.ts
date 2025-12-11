@@ -39,8 +39,6 @@ export const useAIStore = create<AIStore>((set) => ({
     set({ isGenerating: true, error: null })
 
     try {
-      console.log('Starting image generation...')
-
       // Call AI service
       const result = await generateImage({ prompt, negativePrompt })
 
@@ -60,8 +58,6 @@ export const useAIStore = create<AIStore>((set) => ({
         generatedImages: [image, ...state.generatedImages],
         isGenerating: false,
       }))
-
-      console.log('Image generation successful')
 
       return dataUrl
     } catch (error) {
