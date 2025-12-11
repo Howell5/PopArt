@@ -111,3 +111,71 @@ const getImageDimensions = (dataUrl: string): Promise<{ width: number; height: n
 export const isImageFile = (file: File): boolean => {
   return file.type.startsWith('image/')
 }
+
+// Add default image to canvas from URL
+export const addDefaultImageToCanvas = async (editor: Editor, imageUrl: string) => {
+  try {
+    // Fetch image and convert to data URL
+    const response = await fetch(imageUrl)
+    const blob = await response.blob()
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+
+    // Get image dimensions
+    const dimensions = await getImageDimensions(dataUrl)
+
+    // Create asset ID
+    const assetId = `asset:${uniqueId()}` as any
+
+    // Create asset
+    editor.createAssets([
+      {
+        id: assetId,
+        type: 'image',
+        typeName: 'asset',
+        props: {
+          name: 'default-image.jpg',
+          src: dataUrl,
+          w: dimensions.width,
+          h: dimensions.height,
+          mimeType: blob.type || 'image/jpeg',
+          isAnimated: false,
+        },
+        meta: {},
+      },
+    ])
+
+    // Scale to reasonable size
+    const maxWidth = 500
+    const maxHeight = 400
+    let width = dimensions.width
+    let height = dimensions.height
+
+    if (width > maxWidth || height > maxHeight) {
+      const scale = Math.min(maxWidth / width, maxHeight / height)
+      width *= scale
+      height *= scale
+    }
+
+    // Place at canvas center (0, 0)
+    editor.createShape({
+      type: 'image',
+      x: -width / 2,
+      y: -height / 2,
+      props: {
+        assetId,
+        w: width,
+        h: height,
+      },
+    })
+
+    // Center viewport on the image
+    editor.zoomToFit()
+  } catch (error) {
+    console.error('Failed to add default image:', error)
+  }
+}

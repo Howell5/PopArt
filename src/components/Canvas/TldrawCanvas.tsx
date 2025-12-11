@@ -1,11 +1,17 @@
 import { Tldraw, useEditor, TLComponents } from 'tldraw'
 import 'tldraw/tldraw.css'
-import { createImageAssetStore, addImageToCanvas, isImageFile } from '../../utils/imageAssets'
+import { createImageAssetStore, addImageToCanvas, isImageFile, addDefaultImageToCanvas } from '../../utils/imageAssets'
 import FloatingToolbar from '../UI/FloatingToolbar'
 import BottomPromptPanel from '../UI/BottomPromptPanel'
 import { useEffect } from 'react'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 // import { Sparkle } from '@phosphor-icons/react'
+
+// Default image URL - Cézanne's "A Painter at Work"
+const DEFAULT_IMAGE_URL = '/default-image.jpg'
+
+// Key for localStorage to track if default image was loaded
+const DEFAULT_IMAGE_LOADED_KEY = 'popart-default-image-loaded'
 
 // Component to handle drag and drop and keyboard shortcuts
 function DropHandler() {
@@ -13,6 +19,18 @@ function DropHandler() {
 
   // Add keyboard shortcuts
   useKeyboardShortcuts(editor)
+
+  // Load default image on first visit
+  useEffect(() => {
+    const hasLoadedDefault = localStorage.getItem(DEFAULT_IMAGE_LOADED_KEY)
+    const hasExistingShapes = editor.getCurrentPageShapes().length > 0
+
+    // Only add default image if this is a fresh start (no shapes and never loaded)
+    if (!hasLoadedDefault && !hasExistingShapes) {
+      addDefaultImageToCanvas(editor, DEFAULT_IMAGE_URL)
+      localStorage.setItem(DEFAULT_IMAGE_LOADED_KEY, 'true')
+    }
+  }, [editor])
 
   useEffect(() => {
     const handleDrop = async (e: DragEvent) => {
