@@ -184,8 +184,8 @@ export const addDefaultImageToCanvas = async (editor: Editor, imageUrl: string) 
       },
     })
 
-    // Reset zoom to 100% and center on image
-    editor.resetZoom()
+    // Set zoom to 100% and center viewport on the image
+    editor.setCamera({ x: 0, y: 0, z: 1 })
   } catch (error) {
     console.error('Failed to add default image:', error)
   }
