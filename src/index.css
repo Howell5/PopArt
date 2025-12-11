@@ -81,14 +81,16 @@ body,
   flex-direction: column !important;
 }
 
-/* Hide elements we don't need */
-.tldraw-layout-custom .tlui-menu-zone,
-.tldraw-layout-custom .tlui-navigation-zone,
-.tldraw-layout-custom .tlui-help-menu {
-  /* display: none !important; */
+/* Position tldraw menu zone next to our logo */
+.tldraw-layout-custom .tlui-menu-zone {
   z-index: 40 !important;
   top: 16px !important;
-  left: 120px !important;
+  left: 110px !important;
+}
+
+.tldraw-layout-custom .tlui-navigation-zone,
+.tldraw-layout-custom .tlui-help-menu {
+  z-index: 40 !important;
 }
 
 /* Adjust style panel position */

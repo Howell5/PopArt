@@ -56,28 +56,12 @@ function InFrontOfTheCanvas() {
     <>
       <FloatingToolbar />
       <BottomPromptPanel />
-      {/* Floating Logo */}
-      <div className="fixed top-4 left-4 flex items-center gap-2 bg-white/80 backdrop-blur-sm px-3 py-2 rounded-xl shadow-sm border border-gray-200/50">
-        <div className="w-7 h-7 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-lg flex items-center justify-center">
-          {/* <Sparkle className="w-4 h-4 text-white" weight="fill" /> */}
-          {/* <svg
-            width="200"
-            height="200"
-            viewBox="0 0 100 100"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <rect width="100" height="100" fill="#0F172A" rx="20" />
-
-            <rect x="28" y="25" width="14" height="50" rx="2" fill="white" />
-
-            <circle cx="62" cy="40" r="16" stroke="white" stroke-width="8" />
-
-            <circle cx="62" cy="40" r="5" fill="#6366F1" />
-          </svg> */}
+      {/* Floating Logo - positioned to align with tldraw menu bar */}
+      <div className="fixed top-[18px] left-4 z-[200] flex items-center gap-2 bg-white px-2.5 py-1.5 rounded-lg shadow-sm border border-gray-200">
+        <div className="w-6 h-6 rounded-md overflow-hidden flex items-center justify-center">
           <svg
-            width="200"
-            height="200"
+            width="24"
+            height="24"
             viewBox="0 0 100 100"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -88,22 +72,19 @@ function InFrontOfTheCanvas() {
                 <stop offset="100%" stopColor="#A5B4FC" stopOpacity="1" />
               </linearGradient>
             </defs>
-
             <rect width="100" height="100" fill="#0F172A" rx="20" />
-
             <path
               d="M65 35 A 22 22 0 1 0 72 45"
               stroke="url(#popGradient1)"
-              stroke-width="8"
-              stroke-linecap="round"
+              strokeWidth="8"
+              strokeLinecap="round"
               fill="none"
               transform="rotate(-15, 50, 50)"
             />
-
             <path d="M72 22 L75 30 L83 33 L75 36 L72 44 L69 36 L61 33 L69 30 Z" fill="#818CF8" />
           </svg>
         </div>
-        <span className="text-sm font-semibold text-gray-800">PopArt</span>
+        <span className="text-sm font-semibold text-gray-700">PopArt</span>
       </div>
     </>
   )

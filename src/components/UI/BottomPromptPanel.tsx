@@ -110,7 +110,7 @@ export default function BottomPromptPanel() {
 
   return (
     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden min-w-[500px] max-w-[700px]">
+      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 min-w-[500px] max-w-[700px]">
         {/* Selected Images Preview */}
         {selectedImages.length > 0 && (
           <div className="px-4 pt-4">
