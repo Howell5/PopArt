@@ -1,4 +1,4 @@
-# Robo v0.1 实施计划
+# PopArt v0.1 实施计划
 
 > 基于技术预研，采用 **tldraw + React + TailwindCSS** 技术栈
 
@@ -226,7 +226,7 @@
 ### 文件结构
 
 ```
-robo/
+popart/
 ├── src/
 │   ├── components/
 │   │   ├── Canvas/

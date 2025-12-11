@@ -67,7 +67,7 @@ function InFrontOfTheCanvas() {
             />
           </svg>
         </div>
-        <span className="text-sm font-semibold text-gray-800">Robo</span>
+        <span className="text-sm font-semibold text-gray-800">PopArt</span>
       </div>
     </>
   )
@@ -86,7 +86,7 @@ export default function TldrawCanvas() {
       <Tldraw
         assets={assetStore}
         components={components}
-        persistenceKey="robo-canvas" // Enable localStorage persistence
+        persistenceKey="popart-canvas" // Enable localStorage persistence
       >
         <DropHandler />
       </Tldraw>

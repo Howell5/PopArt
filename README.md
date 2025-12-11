@@ -1,4 +1,4 @@
-# Robo - AI Canvas
+# PopArt - AI Canvas
 
 An infinite canvas web app with AI image generation powered by ByteDance SeedDream 4.0 (火山方舟).
 
@@ -33,7 +33,7 @@ An infinite canvas web app with AI image generation powered by ByteDance SeedDre
 1. Clone the repository
 ```bash
 git clone <your-repo-url>
-cd robo
+cd popart
 ```
 
 2. Install dependencies
@@ -72,7 +72,7 @@ The app will be available at `http://localhost:3000`
 ### Project Structure
 
 ```
-robo/
+popart/
 ├── src/
 │   ├── components/
 │   │   ├── Canvas/          # Canvas-related components
