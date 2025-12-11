@@ -65,7 +65,7 @@ export default function BottomPromptPanel() {
         : undefined
 
       // Calculate position for new image (next to reference images if any)
-      let position: { x: number; y: number } | undefined
+      let position: { x: number; y: number; anchorLeft?: boolean } | undefined
       if (selectedImages.length > 0) {
         // Find the rightmost edge of selected images
         const selectedShapes = editor.getSelectedShapes().filter(
