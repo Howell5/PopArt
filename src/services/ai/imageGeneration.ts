@@ -56,6 +56,7 @@ export interface GenerateImageParams {
   prompt: string
   negativePrompt?: string
   modelId?: string
+  referenceImages?: string[] // Array of data URLs or URLs for image-to-image
 }
 
 export interface GeneratedImage {
@@ -79,6 +80,21 @@ export const generateImage = async (params: GenerateImageParams): Promise<Genera
       fullPrompt += `\n\nNegative prompt: ${params.negativePrompt}`
     }
 
+    // Build extra_body with optional reference images for image-to-image
+    const extraBody: Record<string, unknown> = {
+      watermark: true, // Add watermark
+    }
+
+    // Add reference images for image-to-image generation
+    if (params.referenceImages && params.referenceImages.length > 0) {
+      // For single image, use 'image' parameter; for multiple, use array
+      if (params.referenceImages.length === 1) {
+        extraBody.image = params.referenceImages[0]
+      } else {
+        extraBody.image = params.referenceImages
+      }
+    }
+
     // Call Seedream via OpenAI-compatible images.generate endpoint
     // Using 'as any' because Ark API supports extra parameters not in OpenAI SDK types
     const response = (await client.images.generate({
@@ -86,9 +102,7 @@ export const generateImage = async (params: GenerateImageParams): Promise<Genera
       prompt: fullPrompt,
       size: model.maxSize === '4K' ? '2K' : '1K', // Use appropriate size based on model
       response_format: 'b64_json', // Return base64 directly (避免 CORS 问题)
-      extra_body: {
-        watermark: true, // Add watermark
-      },
+      extra_body: extraBody,
     } as any)) as any
 
     // Get the base64 data from response

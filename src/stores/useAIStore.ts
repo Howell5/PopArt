@@ -26,7 +26,7 @@ interface AIStore {
   // Actions
   setCurrentPrompt: (prompt: string) => void
   setCurrentModel: (model: ImageModel) => void
-  generateImage: (prompt: string, negativePrompt?: string) => Promise<string>
+  generateImage: (prompt: string, options?: { negativePrompt?: string; referenceImages?: string[] }) => Promise<string>
   clearError: () => void
   clearHistory: () => void
 }
@@ -53,7 +53,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
   },
 
   // Generate image
-  generateImage: async (prompt: string, negativePrompt?: string) => {
+  generateImage: async (prompt: string, options?: { negativePrompt?: string; referenceImages?: string[] }) => {
     const { currentModel } = get()
     set({ isGenerating: true, error: null })
 
@@ -61,8 +61,9 @@ export const useAIStore = create<AIStore>((set, get) => ({
       // Call AI service with selected model
       const result = await generateImage({
         prompt,
-        negativePrompt,
+        negativePrompt: options?.negativePrompt,
         modelId: currentModel.id,
+        referenceImages: options?.referenceImages,
       })
 
       // Convert to data URL

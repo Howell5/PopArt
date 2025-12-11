@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useEditor, TLImageShape } from 'tldraw'
 import { useAIStore, IMAGE_MODELS } from '../../stores/useAIStore'
 import { addImageToCanvas } from '../../utils/imageAssets'
-import { X, ArrowRight, SpinnerGap, CaretDown, Check } from '@phosphor-icons/react'
+import { X, ArrowRight, SpinnerGap, Cube, Check } from '@phosphor-icons/react'
 
 interface SelectedImage {
   id: string
@@ -59,8 +59,13 @@ export default function BottomPromptPanel() {
     if (!prompt.trim() || isGenerating) return
 
     try {
-      // Generate image with prompt
-      const dataUrl = await generateImage(prompt)
+      // Collect reference images for image-to-image generation
+      const referenceImages = selectedImages.length > 0
+        ? selectedImages.map(img => img.src)
+        : undefined
+
+      // Generate image with prompt and optional reference images
+      const dataUrl = await generateImage(prompt, { referenceImages })
 
       // Convert data URL to File
       const response = await fetch(dataUrl)
@@ -110,22 +115,22 @@ export default function BottomPromptPanel() {
 
   return (
     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 min-w-[500px] max-w-[700px]">
+      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-[600px]">
         {/* Selected Images Preview */}
         {selectedImages.length > 0 && (
-          <div className="px-4 pt-4">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="px-5 pt-4 pb-2">
+            <div className="flex items-center gap-3 flex-wrap">
               {selectedImages.map((image) => (
                 <div key={image.id} className="relative inline-block">
                   <img
                     src={image.src}
                     alt="Selected"
-                    className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                    className="w-14 h-14 object-cover rounded-lg border border-gray-200"
                   />
                   <button
                     onClick={() => removeSelectedImage(image.id)}
-                    className="absolute -top-2 -right-2 w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors"
-                    title="Remove from selection"
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors"
+                    title="移除"
                   >
                     <X className="w-3 h-3" weight="bold" />
                   </button>
@@ -134,8 +139,8 @@ export default function BottomPromptPanel() {
               {selectedImages.length > 1 && (
                 <button
                   onClick={clearSelectedImages}
-                  className="px-3 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                  title="Clear all selections"
+                  className="px-2.5 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                  title="清除全部"
                 >
                   清除全部
                 </button>
@@ -145,85 +150,97 @@ export default function BottomPromptPanel() {
         )}
 
         {/* Input Area */}
-        <div className="flex items-end gap-3 p-4">
-          {/* Model Selector */}
-          <div className="relative" ref={modelPickerRef}>
-            <button
-              onClick={() => setShowModelPicker(!showModelPicker)}
-              disabled={isGenerating}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Select model"
-            >
-              <span className="font-medium">{currentModel.name}</span>
-              <CaretDown className="w-3.5 h-3.5" weight="bold" />
-            </button>
-
-            {/* Model Picker Dropdown */}
-            {showModelPicker && (
-              <div className="absolute bottom-full left-0 mb-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-                <div className="py-1">
-                  {IMAGE_MODELS.map((model) => (
-                    <button
-                      key={model.id}
-                      onClick={() => {
-                        setCurrentModel(model)
-                        setShowModelPicker(false)
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex-1 text-left">
-                        <div className="text-sm font-medium text-gray-800">{model.name}</div>
-                        <div className="text-xs text-gray-500">{model.description}</div>
-                      </div>
-                      {currentModel.id === model.id && (
-                        <Check className="w-4 h-4 text-purple-600" weight="bold" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1">
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder={selectedImages.length > 0 ? "描述你想要的变化..." : "描述你想要生成的图片..."}
-              className="w-full px-4 py-3 text-base bg-transparent border-none outline-none resize-none placeholder-gray-400"
-              rows={1}
-              disabled={isGenerating}
-              style={{ minHeight: '48px', maxHeight: '120px' }}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement
-                target.style.height = 'auto'
-                target.style.height = Math.min(target.scrollHeight, 120) + 'px'
-              }}
-            />
-          </div>
-
-          {/* Generate Button */}
-          <button
-            onClick={handleGenerate}
-            disabled={!prompt.trim() || isGenerating}
-            className="w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center hover:bg-purple-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex-shrink-0"
-            title="Generate"
-          >
-            {isGenerating ? (
-              <SpinnerGap className="w-5 h-5 animate-spin" />
-            ) : (
-              <ArrowRight className="w-5 h-5" weight="bold" />
-            )}
-          </button>
+        <div className="px-5 py-4">
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder={selectedImages.length > 0 ? "描述你想要的变化..." : "描述你想要生成的图片..."}
+            className="w-full text-base bg-transparent border-none outline-none resize-none placeholder-gray-400 leading-relaxed"
+            rows={2}
+            disabled={isGenerating}
+            style={{ minHeight: '56px', maxHeight: '120px' }}
+            onInput={(e) => {
+              const target = e.target as HTMLTextAreaElement
+              target.style.height = 'auto'
+              target.style.height = Math.min(target.scrollHeight, 120) + 'px'
+            }}
+          />
         </div>
 
-        {/* Hint */}
-        {isGenerating && (
-          <div className="px-4 pb-3">
-            <p className="text-xs text-gray-500">正在生成中，请稍候...</p>
+        {/* Bottom Bar: Model Selector + Generate Button */}
+        <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+          {/* Left: Status or hint */}
+          <div className="flex-1">
+            {isGenerating ? (
+              <p className="text-sm text-gray-500">正在生成中...</p>
+            ) : selectedImages.length > 0 ? (
+              <p className="text-sm text-gray-500">
+                已选择 {selectedImages.length} 张参考图
+              </p>
+            ) : null}
           </div>
-        )}
+
+          {/* Right: Model Selector + Generate Button */}
+          <div className="flex items-center gap-2">
+            {/* Model Selector */}
+            <div className="relative" ref={modelPickerRef}>
+              <button
+                onClick={() => setShowModelPicker(!showModelPicker)}
+                disabled={isGenerating}
+                className="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={`模型: ${currentModel.name}`}
+              >
+                <Cube className="w-5 h-5" weight="duotone" />
+              </button>
+
+              {/* Model Picker Dropdown */}
+              {showModelPicker && (
+                <div className="absolute bottom-full right-0 mb-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-gray-100">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">选择模型</p>
+                  </div>
+                  <div className="py-1">
+                    {IMAGE_MODELS.map((model) => (
+                      <button
+                        key={model.id}
+                        onClick={() => {
+                          setCurrentModel(model)
+                          setShowModelPicker(false)
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${
+                          currentModel.id === model.id ? 'bg-purple-50' : ''
+                        }`}
+                      >
+                        <div className="flex-1 text-left">
+                          <div className="text-sm font-medium text-gray-800">{model.name}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{model.description}</div>
+                        </div>
+                        {currentModel.id === model.id && (
+                          <Check className="w-4 h-4 text-purple-600" weight="bold" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Generate Button */}
+            <button
+              onClick={handleGenerate}
+              disabled={!prompt.trim() || isGenerating}
+              className="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center hover:bg-purple-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex-shrink-0"
+              title="生成"
+            >
+              {isGenerating ? (
+                <SpinnerGap className="w-5 h-5 animate-spin" />
+              ) : (
+                <ArrowRight className="w-5 h-5" weight="bold" />
+              )}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
