@@ -172,11 +172,16 @@ export const addDefaultImageToCanvas = async (editor: Editor, imageUrl: string) 
       height *= scale
     }
 
-    // Place at canvas center (0, 0)
+    // Get viewport bounds to calculate center
+    const viewportBounds = editor.getViewportScreenBounds()
+    const centerX = viewportBounds.w / 2 - width / 2
+    const centerY = viewportBounds.h / 2 - height / 2
+
+    // Place image at viewport center
     editor.createShape({
       type: 'image',
-      x: -width / 2,
-      y: -height / 2,
+      x: centerX,
+      y: centerY,
       props: {
         assetId,
         w: width,
@@ -184,8 +189,8 @@ export const addDefaultImageToCanvas = async (editor: Editor, imageUrl: string) 
       },
     })
 
-    // Set zoom to 100% and center viewport on the image
-    editor.setCamera({ x: 0, y: 0, z: 1 })
+    // Reset zoom to 100% at current position
+    editor.resetZoom()
   } catch (error) {
     console.error('Failed to add default image:', error)
   }
