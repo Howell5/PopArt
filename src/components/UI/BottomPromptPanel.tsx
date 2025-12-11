@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useEditor, TLImageShape } from 'tldraw'
 import { useAIStore } from '../../stores/useAIStore'
 import { addImageToCanvas } from '../../utils/imageAssets'
+import { X, ArrowRight, SpinnerGap } from '@phosphor-icons/react'
 
 interface SelectedImage {
   id: string
@@ -112,9 +113,7 @@ export default function BottomPromptPanel() {
                     className="absolute -top-2 -right-2 w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors"
                     title="Remove from selection"
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <X className="w-3 h-3" weight="bold" />
                   </button>
                 </div>
               ))}
@@ -159,14 +158,9 @@ export default function BottomPromptPanel() {
             title="Generate"
           >
             {isGenerating ? (
-              <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
+              <SpinnerGap className="w-5 h-5 animate-spin" />
             ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
+              <ArrowRight className="w-5 h-5" weight="bold" />
             )}
           </button>
         </div>

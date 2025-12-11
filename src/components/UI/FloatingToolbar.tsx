@@ -3,6 +3,7 @@ import { useEditor, TLImageShape } from 'tldraw'
 import { upscaleImage } from '../../services/ai/imageUpscale'
 import { removeBackground } from '../../services/ai/backgroundRemoval'
 import { base64ToDataUrl } from '../../services/ai/imageGeneration'
+import { Copy, DownloadSimple, MagnifyingGlassPlus, Eraser, SpinnerGap } from '@phosphor-icons/react'
 
 export default function FloatingToolbar() {
   const editor = useEditor()
@@ -314,9 +315,7 @@ export default function FloatingToolbar() {
         className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         title="Copy to clipboard"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
+        <Copy className="w-4 h-4" weight="bold" />
         <span>复制</span>
       </button>
 
@@ -327,9 +326,7 @@ export default function FloatingToolbar() {
         className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         title="Download image"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-        </svg>
+        <DownloadSimple className="w-4 h-4" weight="bold" />
         <span>下载</span>
       </button>
 
@@ -343,9 +340,7 @@ export default function FloatingToolbar() {
         className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-400 rounded-full transition-colors opacity-50 cursor-not-allowed"
         title="Upscale 2x (coming soon)"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-        </svg>
+        <MagnifyingGlassPlus className="w-4 h-4" />
         <span>2x</span>
       </button>
 
@@ -356,9 +351,7 @@ export default function FloatingToolbar() {
         className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-400 rounded-full transition-colors opacity-50 cursor-not-allowed"
         title="Upscale 4x (coming soon)"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-        </svg>
+        <MagnifyingGlassPlus className="w-4 h-4" />
         <span>4x</span>
       </button>
 
@@ -373,14 +366,9 @@ export default function FloatingToolbar() {
         title="Remove Background"
       >
         {isProcessing && processingType === 'remove-bg' ? (
-          <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
+          <SpinnerGap className="w-4 h-4 animate-spin" />
         ) : (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-          </svg>
+          <Eraser className="w-4 h-4" weight="bold" />
         )}
         <span>移除背景</span>
       </button>
