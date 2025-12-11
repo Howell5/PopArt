@@ -5,7 +5,7 @@ import FloatingToolbar from '../UI/FloatingToolbar'
 import BottomPromptPanel from '../UI/BottomPromptPanel'
 import { useEffect } from 'react'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
-import { Sparkle } from '@phosphor-icons/react'
+// import { Sparkle } from '@phosphor-icons/react'
 
 // Component to handle drag and drop and keyboard shortcuts
 function DropHandler() {

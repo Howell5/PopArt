@@ -1,10 +1,17 @@
 import { create } from 'zustand'
-import { generateImage, base64ToDataUrl } from '../services/ai/imageGeneration'
+import {
+  generateImage,
+  base64ToDataUrl,
+  IMAGE_MODELS,
+  DEFAULT_MODEL,
+  type ImageModel,
+} from '../services/ai/imageGeneration'
 
 interface GeneratedImage {
   id: string
   dataUrl: string
   prompt: string
+  modelId: string
   createdAt: number
 }
 
@@ -14,33 +21,49 @@ interface AIStore {
   generatedImages: GeneratedImage[]
   error: string | null
   currentPrompt: string
+  currentModel: ImageModel
 
   // Actions
   setCurrentPrompt: (prompt: string) => void
+  setCurrentModel: (model: ImageModel) => void
   generateImage: (prompt: string, negativePrompt?: string) => Promise<string>
   clearError: () => void
   clearHistory: () => void
 }
 
-export const useAIStore = create<AIStore>((set) => ({
+// Export for convenience
+export { IMAGE_MODELS, DEFAULT_MODEL, type ImageModel }
+
+export const useAIStore = create<AIStore>((set, get) => ({
   // Initial state
   isGenerating: false,
   generatedImages: [],
   error: null,
   currentPrompt: '',
+  currentModel: DEFAULT_MODEL,
 
   // Set current prompt
   setCurrentPrompt: (prompt: string) => {
     set({ currentPrompt: prompt })
   },
 
+  // Set current model
+  setCurrentModel: (model: ImageModel) => {
+    set({ currentModel: model })
+  },
+
   // Generate image
   generateImage: async (prompt: string, negativePrompt?: string) => {
+    const { currentModel } = get()
     set({ isGenerating: true, error: null })
 
     try {
-      // Call AI service
-      const result = await generateImage({ prompt, negativePrompt })
+      // Call AI service with selected model
+      const result = await generateImage({
+        prompt,
+        negativePrompt,
+        modelId: currentModel.id,
+      })
 
       // Convert to data URL
       const dataUrl = base64ToDataUrl(result.base64, result.mimeType)
@@ -50,6 +73,7 @@ export const useAIStore = create<AIStore>((set) => ({
         id: `img-${Date.now()}`,
         dataUrl,
         prompt,
+        modelId: currentModel.id,
         createdAt: Date.now(),
       }
 

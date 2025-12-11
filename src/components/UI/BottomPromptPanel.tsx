@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useEditor, TLImageShape } from 'tldraw'
-import { useAIStore } from '../../stores/useAIStore'
+import { useAIStore, IMAGE_MODELS } from '../../stores/useAIStore'
 import { addImageToCanvas } from '../../utils/imageAssets'
-import { X, ArrowRight, SpinnerGap } from '@phosphor-icons/react'
+import { X, ArrowRight, SpinnerGap, CaretDown, Check } from '@phosphor-icons/react'
 
 interface SelectedImage {
   id: string
@@ -11,7 +11,9 @@ interface SelectedImage {
 
 export default function BottomPromptPanel() {
   const editor = useEditor()
-  const { isGenerating, generateImage } = useAIStore()
+  const { isGenerating, generateImage, currentModel, setCurrentModel } = useAIStore()
+  const [showModelPicker, setShowModelPicker] = useState(false)
+  const modelPickerRef = useRef<HTMLDivElement>(null)
 
   const [prompt, setPrompt] = useState('')
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([])
@@ -94,6 +96,18 @@ export default function BottomPromptPanel() {
     editor.setSelectedShapes(newIds)
   }
 
+  // Close model picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modelPickerRef.current && !modelPickerRef.current.contains(event.target as Node)) {
+        setShowModelPicker(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   return (
     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
       <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden min-w-[500px] max-w-[700px]">
@@ -132,6 +146,45 @@ export default function BottomPromptPanel() {
 
         {/* Input Area */}
         <div className="flex items-end gap-3 p-4">
+          {/* Model Selector */}
+          <div className="relative" ref={modelPickerRef}>
+            <button
+              onClick={() => setShowModelPicker(!showModelPicker)}
+              disabled={isGenerating}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Select model"
+            >
+              <span className="font-medium">{currentModel.name}</span>
+              <CaretDown className="w-3.5 h-3.5" weight="bold" />
+            </button>
+
+            {/* Model Picker Dropdown */}
+            {showModelPicker && (
+              <div className="absolute bottom-full left-0 mb-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+                <div className="py-1">
+                  {IMAGE_MODELS.map((model) => (
+                    <button
+                      key={model.id}
+                      onClick={() => {
+                        setCurrentModel(model)
+                        setShowModelPicker(false)
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex-1 text-left">
+                        <div className="text-sm font-medium text-gray-800">{model.name}</div>
+                        <div className="text-xs text-gray-500">{model.description}</div>
+                      </div>
+                      {currentModel.id === model.id && (
+                        <Check className="w-4 h-4 text-purple-600" weight="bold" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="flex-1">
             <textarea
               value={prompt}
