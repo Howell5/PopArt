@@ -1,6 +1,7 @@
 import { Tldraw, useEditor, TLComponents } from 'tldraw'
 import 'tldraw/tldraw.css'
-import { createImageAssetStore, addImageToCanvas, isImageFile, addDefaultImageToCanvas } from '../../utils/imageAssets'
+import { createImageAssetStore, addImageToCanvas, isImageFile } from '../../utils/imageAssets'
+import { createOnboardingContent } from '../../utils/onboarding'
 import FloatingToolbar from '../UI/FloatingToolbar'
 import BottomPromptPanel from '../UI/BottomPromptPanel'
 import SettingsModal from '../UI/SettingsModal'
@@ -10,11 +11,8 @@ import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import { hasNebulaApiKey } from '../../utils/apiKeyStorage'
 import { Gear } from '@phosphor-icons/react'
 
-// Default image URL - Cézanne's "A Painter at Work"
-const DEFAULT_IMAGE_URL = '/default-image.jpg'
-
-// Key for localStorage to track if default image was loaded
-const DEFAULT_IMAGE_LOADED_KEY = 'popart-default-image-loaded'
+// Key for localStorage to track if onboarding was shown
+const ONBOARDING_SHOWN_KEY = 'popart-onboarding-shown'
 
 // Global event emitter for settings modal
 let openSettingsCallback: (() => void) | null = null
@@ -30,15 +28,15 @@ function DropHandler() {
   // Add keyboard shortcuts
   useKeyboardShortcuts(editor)
 
-  // Load default image on first visit
+  // Show onboarding on first visit
   useEffect(() => {
-    const hasLoadedDefault = localStorage.getItem(DEFAULT_IMAGE_LOADED_KEY)
+    const hasShownOnboarding = localStorage.getItem(ONBOARDING_SHOWN_KEY)
     const hasExistingShapes = editor.getCurrentPageShapes().length > 0
 
-    // Only add default image if this is a fresh start (no shapes and never loaded)
-    if (!hasLoadedDefault && !hasExistingShapes) {
-      addDefaultImageToCanvas(editor, DEFAULT_IMAGE_URL)
-      localStorage.setItem(DEFAULT_IMAGE_LOADED_KEY, 'true')
+    // Only show onboarding if this is a fresh start (no shapes and never shown)
+    if (!hasShownOnboarding && !hasExistingShapes) {
+      createOnboardingContent(editor)
+      localStorage.setItem(ONBOARDING_SHOWN_KEY, 'true')
     }
   }, [editor])
 
