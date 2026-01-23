@@ -2,58 +2,92 @@
 const NEBULA_BASE_URL = 'https://llm.ai-nebula.com/v1'
 
 // Model provider types
-type ModelProvider = 'gemini' | 'seedream'
+export type ModelProvider = 'gemini' | 'seedream'
+
+// Image size options for Gemini
+export type GeminiImageSize = '1K' | '2K' | '4K'
+
+// Aspect ratio options for Gemini
+export const GEMINI_ASPECT_RATIOS = [
+  { value: '1:1', label: '1:1' },
+  { value: '16:9', label: '16:9' },
+  { value: '9:16', label: '9:16' },
+  { value: '4:3', label: '4:3' },
+  { value: '3:4', label: '3:4' },
+  { value: '3:2', label: '3:2' },
+  { value: '2:3', label: '2:3' },
+] as const
+
+// Size options for Gemini (quality)
+export const GEMINI_IMAGE_SIZES = [
+  { value: '1K', label: '标清 1K' },
+  { value: '2K', label: '高清 2K' },
+  { value: '4K', label: '超清 4K' },
+] as const
+
+// Size options for Seedream (2K resolution)
+export const SEEDREAM_SIZES_2K = [
+  { value: '2048x2048', label: '1:1', description: '2048×2048' },
+  { value: '2560x1440', label: '16:9', description: '2560×1440' },
+  { value: '1440x2560', label: '9:16', description: '1440×2560' },
+  { value: '2304x1728', label: '4:3', description: '2304×1728' },
+  { value: '1728x2304', label: '3:4', description: '1728×2304' },
+  { value: '2496x1664', label: '3:2', description: '2496×1664' },
+  { value: '1664x2496', label: '2:3', description: '1664×2496' },
+] as const
+
+// Size options for Seedream (4K resolution)
+export const SEEDREAM_SIZES_4K = [
+  { value: '4096x4096', label: '1:1', description: '4096×4096' },
+  { value: '5504x3040', label: '16:9', description: '5504×3040' },
+  { value: '3040x5504', label: '9:16', description: '3040×5504' },
+  { value: '4704x3520', label: '4:3', description: '4704×3520' },
+  { value: '3520x4704', label: '3:4', description: '3520×4704' },
+  { value: '4992x3328', label: '3:2', description: '4992×3328' },
+  { value: '3328x4992', label: '2:3', description: '3328×4992' },
+] as const
 
 // Available models configuration
 export interface ImageModel {
   id: string
   name: string
   description: string
-  size: string // Aspect ratio for Gemini (e.g., '1:1'), pixel dimensions for Seedream (e.g., '2048x2048')
   provider: ModelProvider
 }
 
 export const IMAGE_MODELS: ImageModel[] = [
-  // Gemini models (default) - use aspect ratio for size, only support b64_json
+  // Gemini models
   {
     id: 'gemini-2.5-flash-image',
     name: 'Nano Banana',
     description: '默认推荐，速度快',
-    size: '1:1',
     provider: 'gemini',
   },
   {
     id: 'gemini-3-pro-image-preview',
     name: 'Nano Banana Pro',
     description: '更高质量输出',
-    size: '1:1',
     provider: 'gemini',
   },
-  // Seedream models - use pixel dimensions for size
+  // Seedream models
   {
     id: 'doubao-seedream-4-5-251128',
     name: 'Seedream 4.5',
     description: '画质最佳',
-    size: '2048x2048',
     provider: 'seedream',
   },
   {
     id: 'doubao-seedream-4-0-250828',
     name: 'Seedream 4.0',
     description: '稳定版，多图融合',
-    size: '2048x2048',
-    provider: 'seedream',
-  },
-  {
-    id: 'doubao-seedream-3-0-t2i-250415',
-    name: 'Seedream 3.0',
-    description: '经典版，速度快',
-    size: '1024x1024',
     provider: 'seedream',
   },
 ]
 
 export const DEFAULT_MODEL = IMAGE_MODELS[0]
+export const DEFAULT_GEMINI_ASPECT_RATIO = '1:1'
+export const DEFAULT_GEMINI_IMAGE_SIZE: GeminiImageSize = '2K'
+export const DEFAULT_SEEDREAM_SIZE = '2048x2048'
 
 // Get API key from environment
 const getApiKey = () => {
@@ -71,6 +105,11 @@ export interface GenerateImageParams {
   negativePrompt?: string
   modelId?: string
   referenceImages?: string[] // Array of data URLs or URLs for image-to-image
+  // Gemini options
+  aspectRatio?: string // e.g., '1:1', '16:9'
+  imageSize?: GeminiImageSize // '1K', '2K', '4K'
+  // Seedream options
+  size?: string // e.g., '2048x2048'
 }
 
 export interface GeneratedImage {
@@ -80,14 +119,12 @@ export interface GeneratedImage {
 
 // Nebula API response format
 interface NebulaResponse {
-  code: number
-  msg: string
-  data: {
-    data: Array<{
-      b64_json?: string
-      url?: string
-    }>
-  }
+  data: Array<{
+    url?: string
+    b64_json?: string
+    revised_prompt?: string
+  }>
+  created: number
 }
 
 /**
@@ -96,22 +133,28 @@ interface NebulaResponse {
 const buildGeminiRequest = (
   model: ImageModel,
   prompt: string,
-  referenceImages?: string[]
+  options: {
+    aspectRatio?: string
+    imageSize?: GeminiImageSize
+    referenceImages?: string[]
+  }
 ): Record<string, unknown> => {
   const requestBody: Record<string, unknown> = {
     model: model.id,
-    size: model.size,
+    size: options.aspectRatio || DEFAULT_GEMINI_ASPECT_RATIO,
+    quality: 'high',
+    image_size: options.imageSize || DEFAULT_GEMINI_IMAGE_SIZE,
     response_format: 'b64_json',
   }
 
   // Image-to-image: use contents array
-  if (referenceImages && referenceImages.length > 0) {
+  if (options.referenceImages && options.referenceImages.length > 0) {
     requestBody.contents = [
       {
         role: 'user',
         parts: [
           { text: prompt },
-          ...referenceImages.map((img) => ({ image: img })),
+          ...options.referenceImages.map((img) => ({ image: img })),
         ],
       },
     ]
@@ -129,21 +172,27 @@ const buildGeminiRequest = (
 const buildSeedreamRequest = (
   model: ImageModel,
   prompt: string,
-  referenceImages?: string[]
+  options: {
+    size?: string
+    referenceImages?: string[]
+  }
 ): Record<string, unknown> => {
   const requestBody: Record<string, unknown> = {
     model: model.id,
-    size: model.size,
+    size: options.size || DEFAULT_SEEDREAM_SIZE,
     watermark: false,
+    optimize_prompt_options: {
+      mode: 'standard',
+    },
   }
 
-  // Image-to-image: use contents array (same as Gemini)
-  if (referenceImages && referenceImages.length > 0) {
+  // Image-to-image: use contents array
+  if (options.referenceImages && options.referenceImages.length > 0) {
     requestBody.contents = [
       {
         role: 'user',
         parts: [
-          ...referenceImages.map((img) => ({ image: img })),
+          ...options.referenceImages.map((img) => ({ image: img })),
           { text: prompt },
         ],
       },
@@ -154,6 +203,28 @@ const buildSeedreamRequest = (
   }
 
   return requestBody
+}
+
+/**
+ * Download image from URL and convert to base64
+ */
+const downloadImageAsBase64 = async (url: string): Promise<string> => {
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`Failed to download image: ${response.status}`)
+  }
+  const blob = await response.blob()
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const dataUrl = reader.result as string
+      // Extract base64 from data URL
+      const base64 = dataUrl.split(',')[1]
+      resolve(base64)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
 }
 
 /**
@@ -173,8 +244,15 @@ export const generateImage = async (params: GenerateImageParams): Promise<Genera
     // Build request body based on provider
     const requestBody =
       model.provider === 'gemini'
-        ? buildGeminiRequest(model, fullPrompt, params.referenceImages)
-        : buildSeedreamRequest(model, fullPrompt, params.referenceImages)
+        ? buildGeminiRequest(model, fullPrompt, {
+            aspectRatio: params.aspectRatio,
+            imageSize: params.imageSize,
+            referenceImages: params.referenceImages,
+          })
+        : buildSeedreamRequest(model, fullPrompt, {
+            size: params.size,
+            referenceImages: params.referenceImages,
+          })
 
     // Call Nebula API
     const response = await fetch(`${NEBULA_BASE_URL}/images/generations`, {
@@ -193,20 +271,20 @@ export const generateImage = async (params: GenerateImageParams): Promise<Genera
 
     const result: NebulaResponse = await response.json()
 
-    // Check Nebula response code
-    if (result.code !== 200) {
-      throw new Error(`Nebula API error: ${result.msg}`)
-    }
-
-    // Extract base64 data from response
-    const imageData = result.data?.data?.[0]
+    // Extract image data from response
+    const imageData = result.data?.[0]
     if (!imageData) {
       throw new Error('No image data in response')
     }
 
-    const base64 = imageData.b64_json
+    // Prefer b64_json, fallback to downloading from url
+    let base64 = imageData.b64_json
+    if (!base64 && imageData.url) {
+      base64 = await downloadImageAsBase64(imageData.url)
+    }
+
     if (!base64) {
-      throw new Error('No base64 data in response')
+      throw new Error('No image data (b64_json or url) in response')
     }
 
     return {

@@ -1,17 +1,113 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useEditor, TLImageShape } from 'tldraw'
-import { useAIStore, IMAGE_MODELS } from '../../stores/useAIStore'
+import {
+  useAIStore,
+  IMAGE_MODELS,
+  GEMINI_ASPECT_RATIOS,
+  GEMINI_IMAGE_SIZES,
+  SEEDREAM_SIZES_2K,
+  type GeminiImageSize,
+} from '../../stores/useAIStore'
 import { addImageToCanvas } from '../../utils/imageAssets'
-import { X, ArrowRight, SpinnerGap, Cube, Check } from '@phosphor-icons/react'
+import { X, ArrowRight, SpinnerGap, CaretDown, Check } from '@phosphor-icons/react'
 
 interface SelectedImage {
   id: string
   src: string
 }
 
+// Dropdown component for selecting options
+function Dropdown<T extends string>({
+  value,
+  options,
+  onChange,
+  disabled,
+  renderLabel,
+}: {
+  value: T
+  options: readonly { value: T; label: string; description?: string }[]
+  onChange: (value: T) => void
+  disabled?: boolean
+  renderLabel?: (option: { value: T; label: string; description?: string }) => React.ReactNode
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const selectedOption = options.find((o) => o.value === value)
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={disabled}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <span>{selectedOption?.label || value}</span>
+        <CaretDown className="w-3.5 h-3.5" weight="bold" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute bottom-full left-0 mb-2 min-w-[140px] bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-50">
+          <div className="py-1 max-h-[240px] overflow-y-auto">
+            {options.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => {
+                  onChange(option.value)
+                  setIsOpen(false)
+                }}
+                className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors ${
+                  value === option.value ? 'bg-purple-50' : ''
+                }`}
+              >
+                <div className="flex-1 text-left">
+                  {renderLabel ? (
+                    renderLabel(option)
+                  ) : (
+                    <>
+                      <div className="text-sm text-gray-800">{option.label}</div>
+                      {option.description && (
+                        <div className="text-xs text-gray-500">{option.description}</div>
+                      )}
+                    </>
+                  )}
+                </div>
+                {value === option.value && (
+                  <Check className="w-4 h-4 text-purple-600" weight="bold" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function BottomPromptPanel() {
   const editor = useEditor()
-  const { isGenerating, generateImage, currentModel, setCurrentModel } = useAIStore()
+  const {
+    isGenerating,
+    generateImage,
+    currentModel,
+    setCurrentModel,
+    geminiAspectRatio,
+    setGeminiAspectRatio,
+    geminiImageSize,
+    setGeminiImageSize,
+    seedreamSize,
+    setSeedreamSize,
+  } = useAIStore()
   const [showModelPicker, setShowModelPicker] = useState(false)
   const modelPickerRef = useRef<HTMLDivElement>(null)
 
@@ -135,9 +231,11 @@ export default function BottomPromptPanel() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const isGemini = currentModel.provider === 'gemini'
+
   return (
     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-[600px]">
+      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-[640px]">
         {/* Selected Images Preview */}
         {selectedImages.length > 0 && (
           <div className="px-5 pt-4 pb-2">
@@ -190,35 +288,24 @@ export default function BottomPromptPanel() {
           />
         </div>
 
-        {/* Bottom Bar: Model Selector + Generate Button */}
+        {/* Bottom Bar: Options + Generate Button */}
         <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
-          {/* Left: Status or hint */}
-          <div className="flex-1">
-            {isGenerating ? (
-              <p className="text-sm text-gray-500">正在生成中...</p>
-            ) : selectedImages.length > 0 ? (
-              <p className="text-sm text-gray-500">
-                已选择 {selectedImages.length} 张参考图
-              </p>
-            ) : null}
-          </div>
-
-          {/* Right: Model Selector + Generate Button */}
+          {/* Left: Model Selector + Size Options */}
           <div className="flex items-center gap-2">
             {/* Model Selector */}
             <div className="relative" ref={modelPickerRef}>
               <button
                 onClick={() => setShowModelPicker(!showModelPicker)}
                 disabled={isGenerating}
-                className="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title={`模型: ${currentModel.name}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Cube className="w-5 h-5" weight="duotone" />
+                <span>{currentModel.name}</span>
+                <CaretDown className="w-3.5 h-3.5" weight="bold" />
               </button>
 
               {/* Model Picker Dropdown */}
               {showModelPicker && (
-                <div className="absolute bottom-full right-0 mb-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+                <div className="absolute bottom-full left-0 mb-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-50">
                   <div className="px-4 py-2.5 border-b border-gray-100">
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">选择模型</p>
                   </div>
@@ -247,6 +334,54 @@ export default function BottomPromptPanel() {
                 </div>
               )}
             </div>
+
+            {/* Aspect Ratio / Size Selector */}
+            {isGemini ? (
+              <>
+                {/* Gemini: Aspect Ratio */}
+                <Dropdown
+                  value={geminiAspectRatio}
+                  options={GEMINI_ASPECT_RATIOS}
+                  onChange={setGeminiAspectRatio}
+                  disabled={isGenerating}
+                />
+                {/* Gemini: Image Size */}
+                <Dropdown
+                  value={geminiImageSize}
+                  options={GEMINI_IMAGE_SIZES}
+                  onChange={(v) => setGeminiImageSize(v as GeminiImageSize)}
+                  disabled={isGenerating}
+                />
+              </>
+            ) : (
+              /* Seedream: Size (includes aspect ratio) */
+              <Dropdown
+                value={seedreamSize}
+                options={SEEDREAM_SIZES_2K}
+                onChange={setSeedreamSize}
+                disabled={isGenerating}
+                renderLabel={(option) => (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-800">{option.label}</span>
+                    {option.description && (
+                      <span className="text-xs text-gray-400">{option.description}</span>
+                    )}
+                  </div>
+                )}
+              />
+            )}
+          </div>
+
+          {/* Right: Status + Generate Button */}
+          <div className="flex items-center gap-3">
+            {/* Status */}
+            {isGenerating ? (
+              <p className="text-sm text-gray-500">正在生成中...</p>
+            ) : selectedImages.length > 0 ? (
+              <p className="text-sm text-gray-500">
+                已选择 {selectedImages.length} 张参考图
+              </p>
+            ) : null}
 
             {/* Generate Button */}
             <button

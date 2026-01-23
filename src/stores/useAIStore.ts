@@ -4,7 +4,14 @@ import {
   base64ToDataUrl,
   IMAGE_MODELS,
   DEFAULT_MODEL,
+  DEFAULT_GEMINI_ASPECT_RATIO,
+  DEFAULT_GEMINI_IMAGE_SIZE,
+  DEFAULT_SEEDREAM_SIZE,
+  GEMINI_ASPECT_RATIOS,
+  GEMINI_IMAGE_SIZES,
+  SEEDREAM_SIZES_2K,
   type ImageModel,
+  type GeminiImageSize,
 } from '../services/ai/imageGeneration'
 
 interface GeneratedImage {
@@ -22,17 +29,33 @@ interface AIStore {
   error: string | null
   currentPrompt: string
   currentModel: ImageModel
+  // Gemini options
+  geminiAspectRatio: string
+  geminiImageSize: GeminiImageSize
+  // Seedream options
+  seedreamSize: string
 
   // Actions
   setCurrentPrompt: (prompt: string) => void
   setCurrentModel: (model: ImageModel) => void
+  setGeminiAspectRatio: (ratio: string) => void
+  setGeminiImageSize: (size: GeminiImageSize) => void
+  setSeedreamSize: (size: string) => void
   generateImage: (prompt: string, options?: { negativePrompt?: string; referenceImages?: string[] }) => Promise<string>
   clearError: () => void
   clearHistory: () => void
 }
 
 // Export for convenience
-export { IMAGE_MODELS, DEFAULT_MODEL, type ImageModel }
+export {
+  IMAGE_MODELS,
+  DEFAULT_MODEL,
+  GEMINI_ASPECT_RATIOS,
+  GEMINI_IMAGE_SIZES,
+  SEEDREAM_SIZES_2K,
+  type ImageModel,
+  type GeminiImageSize,
+}
 
 export const useAIStore = create<AIStore>((set, get) => ({
   // Initial state
@@ -41,6 +64,9 @@ export const useAIStore = create<AIStore>((set, get) => ({
   error: null,
   currentPrompt: '',
   currentModel: DEFAULT_MODEL,
+  geminiAspectRatio: DEFAULT_GEMINI_ASPECT_RATIO,
+  geminiImageSize: DEFAULT_GEMINI_IMAGE_SIZE,
+  seedreamSize: DEFAULT_SEEDREAM_SIZE,
 
   // Set current prompt
   setCurrentPrompt: (prompt: string) => {
@@ -52,18 +78,38 @@ export const useAIStore = create<AIStore>((set, get) => ({
     set({ currentModel: model })
   },
 
+  // Set Gemini aspect ratio
+  setGeminiAspectRatio: (ratio: string) => {
+    set({ geminiAspectRatio: ratio })
+  },
+
+  // Set Gemini image size
+  setGeminiImageSize: (size: GeminiImageSize) => {
+    set({ geminiImageSize: size })
+  },
+
+  // Set Seedream size
+  setSeedreamSize: (size: string) => {
+    set({ seedreamSize: size })
+  },
+
   // Generate image
   generateImage: async (prompt: string, options?: { negativePrompt?: string; referenceImages?: string[] }) => {
-    const { currentModel } = get()
+    const { currentModel, geminiAspectRatio, geminiImageSize, seedreamSize } = get()
     set({ isGenerating: true, error: null })
 
     try {
-      // Call AI service with selected model
+      // Call AI service with selected model and options
       const result = await generateImage({
         prompt,
         negativePrompt: options?.negativePrompt,
         modelId: currentModel.id,
         referenceImages: options?.referenceImages,
+        // Gemini options
+        aspectRatio: currentModel.provider === 'gemini' ? geminiAspectRatio : undefined,
+        imageSize: currentModel.provider === 'gemini' ? geminiImageSize : undefined,
+        // Seedream options
+        size: currentModel.provider === 'seedream' ? seedreamSize : undefined,
       })
 
       // Convert to data URL
