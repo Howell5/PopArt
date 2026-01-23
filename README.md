@@ -1,12 +1,12 @@
 # PopArt - AI Canvas
 
-An infinite canvas web app with AI image generation powered by Nebula API (Gemini & Seedream models).
+An infinite canvas web app with AI image generation (Gemini & Seedream models).
 
 ## Features
 
 - ✅ Infinite canvas with smooth pan and zoom
 - ✅ Drag and drop image upload
-- ✅ AI image generation using Nebula API (Gemini & Seedream)
+- ✅ AI image generation (Gemini & Seedream)
 - ✅ Advanced prompt controls (negative prompts)
 - 🚧 Image editing (upscale, background removal) - Coming in Stage 4
 - 🚧 More features coming soon...
@@ -15,7 +15,7 @@ An infinite canvas web app with AI image generation powered by Nebula API (Gemin
 
 - **Framework**: React 18 + TypeScript
 - **Canvas SDK**: tldraw v2
-- **AI Model**: Nebula API (Gemini & Seedream)
+- **AI Model**: Gemini & Seedream
 - **Styling**: TailwindCSS
 - **Build Tool**: Vite
 - **State Management**: Zustand
@@ -26,7 +26,7 @@ An infinite canvas web app with AI image generation powered by Nebula API (Gemin
 
 - Node.js 18+
 - npm or pnpm
-- Nebula API Key (for AI image generation)
+- API Key (for AI image generation)
 
 ### Installation
 
@@ -41,31 +41,14 @@ cd popart
 npm install
 ```
 
-3. Set up environment variables
-```bash
-cp .env.example .env.local
-```
-
-Edit `.env.local` and add your Nebula API key:
-```bash
-VITE_NEBULA_API_KEY=your_nebula_api_key
-```
-
-**Get your API key**: [Nebula Console](https://ai-nebula.com)
-
-**Important**:
-- ✅ Vite automatically loads `.env` files (no need for dotenv package)
-- ✅ Only variables prefixed with `VITE_` are exposed to the browser
-- ✅ Restart dev server after changing `.env` files
-
-4. Start the development server
+3. Start the development server
 ```bash
 npm run dev
 ```
 
 The app will be available at `http://localhost:3000`
 
-📖 **Need help?** See [SETUP.md](./SETUP.md) for detailed setup instructions.
+4. Configure API Key in the app settings (gear icon at bottom right)
 
 ## Development
 
@@ -100,7 +83,7 @@ See [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) for detailed development 
 
 - [x] Stage 1: Project setup and infrastructure ✅
 - [x] Stage 2: Infinite canvas core features ✅
-- [x] Stage 3: AI image generation (Nebula API) ✅
+- [x] Stage 3: AI image generation ✅
 - [ ] Stage 4: Image editing features (upscale, background removal)
 - [ ] Stage 5: Optimization and polish
 
@@ -109,9 +92,8 @@ See [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) for detailed development 
 ### AI Image Generation
 
 1. **Set up your API key**:
-   - Get an API key from [Nebula Console](https://ai-nebula.com)
-   - Copy `.env.example` to `.env.local`
-   - Add your API key: `VITE_NEBULA_API_KEY=your_key_here`
+   - Click the gear icon at the bottom right
+   - Enter your API key and save
 
 2. **Generate images**:
    - Enter your prompt in the AI Generate panel
@@ -133,4 +115,3 @@ MIT
 ## Credits
 
 - Built with [tldraw](https://tldraw.dev)
-- AI powered by [Nebula API](https://ai-nebula.com)

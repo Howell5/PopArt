@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PopArt is an AI-powered infinite canvas web application for image generation and editing. It uses tldraw as the canvas SDK with Nebula API for AI image generation (Gemini & Seedream models).
+PopArt is an AI-powered infinite canvas web application for image generation and editing. It uses tldraw as the canvas SDK with AI image generation (Gemini & Seedream models).
 
 ## Commands
 
@@ -19,7 +19,7 @@ npm run preview  # Preview production build
 
 ### Core Stack
 - **Canvas**: tldraw v2 - handles infinite canvas, pan/zoom, shape management, persistence
-- **AI Image Generation**: Nebula API (Gemini & Seedream models)
+- **AI Image Generation**: Gemini & Seedream models
 - **State**: Zustand for AI generation state; tldraw manages canvas state with localStorage persistence
 - **Styling**: TailwindCSS
 
@@ -30,14 +30,14 @@ npm run preview  # Preview production build
 2. **Image Assets**: All images are stored as base64 data URLs in tldraw's asset store (`src/utils/imageAssets.ts`). The `createImageAssetStore()` function handles image uploads and resolution.
 
 3. **AI Services**: Located in `src/services/ai/`:
-   - `imageGeneration.ts` - Nebula API (Gemini & Seedream models)
+   - `imageGeneration.ts` - Gemini & Seedream models
 
 4. **UI Components**: Main floating UI components:
    - `BottomPromptPanel` - AI generation input with model selection and reference image support
    - `FloatingToolbar` - Image actions (copy, download) positioned above selected image
    - `SettingsModal` - API Key configuration modal
 
-5. **API Key Management**: Users must configure their own Nebula API Key via the settings modal (gear icon at bottom left). Keys are stored in localStorage (`src/utils/apiKeyStorage.ts`).
+5. **API Key Management**: Users must configure their own API Key via the settings modal (gear icon at bottom right). Keys are stored in localStorage (`src/utils/apiKeyStorage.ts`).
 
 ### Data Flow for Image Generation
 
@@ -48,7 +48,7 @@ npm run preview  # Preview production build
 
 ### API Key Configuration
 
-Users configure their Nebula API Key through the in-app settings modal (no environment variables needed). The key is stored in localStorage.
+Users configure their API Key through the in-app settings modal (no environment variables needed). The key is stored in localStorage.
 
 ## Code Patterns
 

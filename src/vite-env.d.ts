@@ -8,7 +8,7 @@ declare module '*.css' {
 
 // Environment variables
 interface ImportMetaEnv {
-  readonly VITE_NEBULA_API_KEY: string
+  readonly VITE_API_KEY: string
   readonly VITE_REPLICATE_API_KEY?: string
   readonly VITE_REMOVE_BG_API_KEY?: string
 }
