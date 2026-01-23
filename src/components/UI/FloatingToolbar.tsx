@@ -213,7 +213,7 @@ export default function FloatingToolbar() {
 
         {/* Info Popover */}
         {showInfo && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+          <div className="absolute bottom-full right-0 mb-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">图片信息</p>
             </div>
