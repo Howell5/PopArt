@@ -88,9 +88,10 @@ export const createOnboardingContent = async (editor: Editor): Promise<void> => 
         w: displayWidth,
         h: displayHeight,
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       meta: {
         source: 'onboarding',
-      },
+      } as any,
     })
     shapeIds.push(shapeId)
   }

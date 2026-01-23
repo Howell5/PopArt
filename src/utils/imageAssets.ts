@@ -378,6 +378,7 @@ export const createPlaceholderShape = (editor: Editor, options: PlaceholderOptio
       w: width,
       h: height,
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     meta: {
       source: 'generating',
       taskId,
@@ -386,7 +387,7 @@ export const createPlaceholderShape = (editor: Editor, options: PlaceholderOptio
       prompt,
       aspectRatio,
       imageSize,
-    },
+    } as any,
   })
 
   return shapeId
@@ -518,11 +519,12 @@ export const addDefaultImageToCanvas = async (editor: Editor, imageUrl: string) 
         w: width,
         h: height,
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       meta: {
         source: 'uploaded',
         originalWidth: dimensions.width,
         originalHeight: dimensions.height,
-      },
+      } as any,
     })
 
     // Reset zoom to 100% at current position
