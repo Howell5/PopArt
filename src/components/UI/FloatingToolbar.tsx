@@ -222,12 +222,14 @@ export default function FloatingToolbar() {
               <div className="flex justify-between items-start">
                 <span className="text-xs text-gray-500">来源</span>
                 <span className="text-xs text-gray-900 font-medium">
-                  {meta?.source === 'ai-generated' ? 'AI 生成' : '本地上传'}
+                  {meta?.source === 'ai-generated' ? 'AI 生成' :
+                   meta?.source === 'generating' ? '正在生成...' :
+                   meta?.source === 'onboarding' ? '示例图片' : '本地上传'}
                 </span>
               </div>
 
-              {/* Model (AI only) */}
-              {meta?.source === 'ai-generated' && meta.modelName && (
+              {/* Model (AI or generating) */}
+              {(meta?.source === 'ai-generated' || meta?.source === 'generating') && meta.modelName && (
                 <div className="flex justify-between items-start">
                   <span className="text-xs text-gray-500">模型</span>
                   <span className="text-xs text-gray-900 font-medium">{meta.modelName}</span>
@@ -244,8 +246,8 @@ export default function FloatingToolbar() {
                 </div>
               )}
 
-              {/* Aspect Ratio (AI only) */}
-              {meta?.source === 'ai-generated' && meta.aspectRatio && (
+              {/* Aspect Ratio (AI or generating) */}
+              {(meta?.source === 'ai-generated' || meta?.source === 'generating') && meta.aspectRatio && (
                 <div className="flex justify-between items-start">
                   <span className="text-xs text-gray-500">比例</span>
                   <span className="text-xs text-gray-900 font-medium">{meta.aspectRatio}</span>
@@ -262,8 +264,8 @@ export default function FloatingToolbar() {
                 </div>
               )}
 
-              {/* Prompt (AI only) */}
-              {meta?.source === 'ai-generated' && meta.prompt && (
+              {/* Prompt (AI or generating) */}
+              {(meta?.source === 'ai-generated' || meta?.source === 'generating') && meta.prompt && (
                 <div className="pt-2 border-t border-gray-100">
                   <span className="text-xs text-gray-500 block mb-1">Prompt</span>
                   <p className="text-xs text-gray-700 leading-relaxed line-clamp-4">

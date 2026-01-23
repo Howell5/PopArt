@@ -30,7 +30,7 @@ export const createImageAssetStore = (): TLAssetStore => {
 
 // Metadata for AI-generated images
 export interface ImageMeta {
-  source: 'ai-generated' | 'uploaded' | 'generating'
+  source: 'ai-generated' | 'uploaded' | 'generating' | 'onboarding'
   // Task ID for generating images
   taskId?: string
   // AI generation info (only for ai-generated)
