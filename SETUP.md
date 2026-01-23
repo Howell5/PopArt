@@ -2,17 +2,16 @@
 
 ## 快速开始
 
-### 1. 获取火山方舟 API Key
+### 1. 获取 Nebula API Key
 
-1. 访问 [火山方舟控制台](https://console.volcengine.com/ark)
-2. 使用字节跳动账号登录（或注册）
+1. 访问 [Nebula Console](https://ai-nebula.com)
+2. 登录或注册账号
 3. 进入 "API Key 管理"
 4. 点击 "创建 API Key"
 5. 复制生成的 API Key
 
 **注意**:
-- 需要先充值才能使用（最低充值金额请查看官网）
-- SeedDream 4.0 按使用量计费
+- 按使用量计费
 - 请勿将 API Key 提交到 Git
 - 建议设置用量预警
 
@@ -29,7 +28,7 @@ cp .env.example .env.local
 
 ```bash
 # .env.local
-VITE_ARK_API_KEY=你的火山方舟API密钥
+VITE_NEBULA_API_KEY=你的Nebula_API密钥
 ```
 
 ### 3. 启动项目
@@ -63,10 +62,10 @@ Vite 按以下优先级读取环境变量文件：
 
 ```typescript
 // ✅ 正确 - Vite 方式
-const apiKey = import.meta.env.VITE_ARK_API_KEY
+const apiKey = import.meta.env.VITE_NEBULA_API_KEY
 
 // ❌ 错误 - Node.js 方式（在浏览器中不工作）
-const apiKey = process.env.VITE_ARK_API_KEY
+const apiKey = process.env.VITE_NEBULA_API_KEY
 ```
 
 ## 验证配置
@@ -76,19 +75,20 @@ const apiKey = process.env.VITE_ARK_API_KEY
 打开浏览器控制台，运行：
 
 ```javascript
-console.log(import.meta.env.VITE_ARK_API_KEY)
+console.log(import.meta.env.VITE_NEBULA_API_KEY)
 ```
 
 应该输出你的 API Key（开发环境下）。
 
 ### 测试 AI 生图
 
-1. 在左侧 Sidebar 找到 "AI Generate" 面板
+1. 在底部找到 AI 生图面板
 2. 输入提示词，例如："一幅宁静的山水画，夕阳西下"
-3. 点击 "Generate with SeedDream"
-4. 等待几秒，图片会自动添加到画布
+3. 选择模型（Gemini 或 Seedream）
+4. 点击生成按钮
+5. 等待几秒，图片会自动添加到画布
 
-**提示**：SeedDream 4.0 支持中文提示词，效果更好！
+**提示**：Gemini 和 Seedream 都支持中文提示词！
 
 ## 常见问题
 
@@ -104,15 +104,17 @@ console.log(import.meta.env.VITE_ARK_API_KEY)
 **A**: 检查：
 1. API Key 是否正确配置
 2. 是否有网络连接
-3. 是否超过了每日免费额度
+3. 是否超过了额度
 4. 查看浏览器控制台的错误信息
 
-### Q: SeedDream 4.0 的计费标准是什么？
+### Q: 有哪些可用的模型？
 
 **A**:
-- 按生成图片数量计费
-- 具体价格请查看 [火山方舟定价](https://www.volcengine.com/docs/82379/1925114)
-- 建议先少量充值测试
+- **Nano Banana** (gemini-2.5-flash-image) - 默认推荐，速度快
+- **Nano Banana Pro** (gemini-3-pro-image-preview) - 更高质量输出
+- **Seedream 4.5** - 画质最佳
+- **Seedream 4.0** - 稳定版，多图融合
+- **Seedream 3.0** - 经典版，速度快
 
 ## 部署
 
@@ -122,7 +124,7 @@ console.log(import.meta.env.VITE_ARK_API_KEY)
 
 1. **方案 A**: 使用后端代理
    ```
-   前端 → 你的后端 → Google Gemini API
+   前端 → 你的后端 → Nebula API
    ```
 
 2. **方案 B**: 使用 Vercel/Netlify 环境变量
@@ -145,7 +147,6 @@ console.log(import.meta.env.VITE_ARK_API_KEY)
 
 ## 需要帮助？
 
-- 📖 查看 [火山方舟官方文档](https://www.volcengine.com/docs/82379)
-- 📖 [SeedDream 4.0 API 参考](https://www.volcengine.com/docs/82379/1541523)
+- 📖 查看 [Nebula 官方文档](https://ai-nebula.com/docs)
 - 🐛 提交 Issue: [GitHub Issues](https://github.com/your-repo/issues)
 - 💬 讨论: [GitHub Discussions](https://github.com/your-repo/discussions)
