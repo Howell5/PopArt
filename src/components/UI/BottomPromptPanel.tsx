@@ -6,10 +6,17 @@ import {
   GEMINI_ASPECT_RATIOS,
   GEMINI_IMAGE_SIZES,
   SEEDREAM_SIZES_2K,
+  MAX_CONCURRENT_TASKS,
   type GeminiImageSize,
 } from '../../stores/useAIStore'
-import { addImageToCanvas } from '../../utils/imageAssets'
-import { X, ArrowRight, SpinnerGap, CaretDown, Check } from '@phosphor-icons/react'
+import {
+  createPlaceholderShape,
+  updatePlaceholderWithImage,
+  removePlaceholderShape,
+  findNonOverlappingPosition,
+  getPlaceholderDimensions,
+} from '../../utils/imageAssets'
+import { X, ArrowRight, SpinnerGap, CaretDown, Check, WarningCircle } from '@phosphor-icons/react'
 
 interface SelectedImage {
   id: string
@@ -97,8 +104,13 @@ function Dropdown<T extends string>({
 export default function BottomPromptPanel() {
   const editor = useEditor()
   const {
-    isGenerating,
+    generatingTasks,
     generateImage,
+    startGenerating,
+    completeGenerating,
+    failGenerating,
+    error,
+    clearError,
     currentModel,
     setCurrentModel,
     geminiAspectRatio,
@@ -114,13 +126,31 @@ export default function BottomPromptPanel() {
   const [prompt, setPrompt] = useState('')
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([])
 
+  // Auto-dismiss error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        clearError()
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [error, clearError])
+
+  const generatingCount = generatingTasks.size
+  const canStartNewTask = generatingCount < MAX_CONCURRENT_TASKS
+  const isGemini = currentModel.provider === 'gemini'
+
   // Track selected images (supports multiple selection)
   const updateSelection = useCallback(() => {
     const selectedShapes = editor.getSelectedShapes()
 
-    // Filter for image shapes only
+    // Filter for image shapes only, exclude generating placeholders
     const imageShapes = selectedShapes.filter(
-      (shape): shape is TLImageShape => shape.type === 'image'
+      (shape): shape is TLImageShape => {
+        if (shape.type !== 'image') return false
+        const meta = shape.meta as any
+        return meta?.source !== 'generating'
+      }
     )
 
     if (imageShapes.length > 0) {
@@ -152,51 +182,73 @@ export default function BottomPromptPanel() {
   }, [editor, updateSelection])
 
   const handleGenerate = async () => {
-    if (!prompt.trim() || isGenerating) return
+    if (!prompt.trim() || !canStartNewTask) return
+
+    const currentPrompt = prompt.trim()
+
+    // Collect reference images for image-to-image generation
+    const referenceImages = selectedImages.length > 0
+      ? selectedImages.map(img => img.src)
+      : undefined
+
+    // Get aspect ratio for placeholder dimensions calculation
+    const aspectRatio = isGemini
+      ? geminiAspectRatio
+      : SEEDREAM_SIZES_2K.find(s => s.value === seedreamSize)?.label || '1:1'
+
+    // Calculate placeholder dimensions
+    const { width: placeholderWidth, height: placeholderHeight } = getPlaceholderDimensions(aspectRatio)
+
+    // Calculate position for new image using smart placement
+    // For image-to-image: anchor to selected images
+    // For text-to-image: anchor to viewport center (empty array)
+    const anchorShapeIds = selectedImages.map(img => img.id)
+    const smartPosition = findNonOverlappingPosition(
+      editor,
+      anchorShapeIds,
+      placeholderWidth,
+      placeholderHeight
+    )
+    const position = { x: smartPosition.x, y: smartPosition.y + placeholderHeight / 2, anchorLeft: true }
+
+    // Generate task ID
+    const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+    // Create placeholder shape
+    const shapeId = createPlaceholderShape(editor, {
+      taskId,
+      aspectRatio,
+      modelId: currentModel.id,
+      modelName: currentModel.name,
+      prompt: currentPrompt,
+      imageSize: isGemini ? geminiImageSize : seedreamSize,
+      position,
+    })
+
+    // Start tracking the task
+    startGenerating(taskId, shapeId, currentPrompt)
+
+    // Clear prompt immediately so user can start typing next one
+    setPrompt('')
 
     try {
-      // Collect reference images for image-to-image generation
-      const referenceImages = selectedImages.length > 0
-        ? selectedImages.map(img => img.src)
-        : undefined
+      // Generate image (this runs in background)
+      const { dataUrl } = await generateImage(currentPrompt, { referenceImages })
 
-      // Calculate position for new image (next to reference images if any)
-      let position: { x: number; y: number; anchorLeft?: boolean } | undefined
-      if (selectedImages.length > 0) {
-        // Find the rightmost edge of selected images
-        const selectedShapes = editor.getSelectedShapes().filter(
-          (shape): shape is TLImageShape => shape.type === 'image'
-        )
-        if (selectedShapes.length > 0) {
-          let maxRight = -Infinity
-          let centerY = 0
-          for (const shape of selectedShapes) {
-            const right = shape.x + (shape.props.w ?? 0)
-            if (right > maxRight) {
-              maxRight = right
-              centerY = shape.y + (shape.props.h ?? 0) / 2
-            }
-          }
-          // Place new image 30px to the right of the rightmost image
-          position = { x: maxRight + 30, y: centerY, anchorLeft: true }
-        }
-      }
+      // Update placeholder with real image
+      await updatePlaceholderWithImage(editor, shapeId, dataUrl)
 
-      // Generate image with prompt and optional reference images
-      const dataUrl = await generateImage(prompt, { referenceImages })
-
-      // Convert data URL to File
-      const response = await fetch(dataUrl)
-      const blob = await response.blob()
-      const file = new File([blob], 'generated-image.png', { type: 'image/png' })
-
-      // Add to canvas (near reference images or at viewport center)
-      await addImageToCanvas(editor, file, position ? { position } : undefined)
-
-      // Clear prompt after successful generation
-      setPrompt('')
+      // Complete the task
+      completeGenerating(taskId, dataUrl)
     } catch (err) {
       console.error('Failed to generate image:', err)
+
+      // Remove placeholder on error
+      removePlaceholderShape(editor, shapeId)
+
+      // Fail the task
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      failGenerating(taskId, errorMessage)
     }
   }
 
@@ -231,10 +283,27 @@ export default function BottomPromptPanel() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const isGemini = currentModel.provider === 'gemini'
-
   return (
     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+      {/* Error Toast */}
+      {error && (
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 w-[500px] max-w-full">
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 shadow-lg flex items-start gap-3">
+            <WarningCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" weight="fill" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-red-800 font-medium">生成失败</p>
+              <p className="text-sm text-red-600 mt-0.5 break-words">{error}</p>
+            </div>
+            <button
+              onClick={clearError}
+              className="text-red-400 hover:text-red-600 transition-colors flex-shrink-0"
+            >
+              <X className="w-4 h-4" weight="bold" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-[640px]">
         {/* Selected Images Preview */}
         {selectedImages.length > 0 && (
@@ -278,7 +347,6 @@ export default function BottomPromptPanel() {
             placeholder={selectedImages.length > 0 ? "描述你想要的变化..." : "描述你想要生成的图片..."}
             className="w-full text-base bg-transparent border-none outline-none resize-none placeholder-gray-400 leading-relaxed"
             rows={2}
-            disabled={isGenerating}
             style={{ minHeight: '56px', maxHeight: '120px' }}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement
@@ -296,8 +364,7 @@ export default function BottomPromptPanel() {
             <div className="relative" ref={modelPickerRef}>
               <button
                 onClick={() => setShowModelPicker(!showModelPicker)}
-                disabled={isGenerating}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >
                 <span>{currentModel.name}</span>
                 <CaretDown className="w-3.5 h-3.5" weight="bold" />
@@ -343,14 +410,12 @@ export default function BottomPromptPanel() {
                   value={geminiAspectRatio}
                   options={GEMINI_ASPECT_RATIOS}
                   onChange={setGeminiAspectRatio}
-                  disabled={isGenerating}
                 />
                 {/* Gemini: Image Size */}
                 <Dropdown
                   value={geminiImageSize}
                   options={GEMINI_IMAGE_SIZES}
                   onChange={(v) => setGeminiImageSize(v as GeminiImageSize)}
-                  disabled={isGenerating}
                 />
               </>
             ) : (
@@ -359,7 +424,6 @@ export default function BottomPromptPanel() {
                 value={seedreamSize}
                 options={SEEDREAM_SIZES_2K}
                 onChange={setSeedreamSize}
-                disabled={isGenerating}
                 renderLabel={(option) => (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-800">{option.label}</span>
@@ -375,8 +439,10 @@ export default function BottomPromptPanel() {
           {/* Right: Status + Generate Button */}
           <div className="flex items-center gap-3">
             {/* Status */}
-            {isGenerating ? (
-              <p className="text-sm text-gray-500">正在生成中...</p>
+            {generatingCount > 0 ? (
+              <p className="text-sm text-gray-500">
+                正在生成 {generatingCount} 张图片...
+              </p>
             ) : selectedImages.length > 0 ? (
               <p className="text-sm text-gray-500">
                 已选择 {selectedImages.length} 张参考图
@@ -386,11 +452,11 @@ export default function BottomPromptPanel() {
             {/* Generate Button */}
             <button
               onClick={handleGenerate}
-              disabled={!prompt.trim() || isGenerating}
+              disabled={!prompt.trim() || !canStartNewTask}
               className="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center hover:bg-purple-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex-shrink-0"
-              title="生成"
+              title={!canStartNewTask ? `最多同时生成 ${MAX_CONCURRENT_TASKS} 张图片` : '生成'}
             >
-              {isGenerating ? (
+              {generatingCount > 0 ? (
                 <SpinnerGap className="w-5 h-5 animate-spin" />
               ) : (
                 <ArrowRight className="w-5 h-5" weight="bold" />
