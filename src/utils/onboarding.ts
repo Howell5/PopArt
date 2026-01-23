@@ -111,7 +111,7 @@ export const createOnboardingContent = async (editor: Editor): Promise<void> => 
       props: {
         text: step.label,
         size: 's',
-        font: 'sans',
+        font: 'draw',
         textAlign: 'middle',
         autoSize: true,
       },
@@ -181,7 +181,7 @@ export const createOnboardingContent = async (editor: Editor): Promise<void> => 
     props: {
       text: tipText,
       size: 's',
-      font: 'sans',
+      font: 'draw',
       textAlign: 'middle',
       autoSize: true,
     },
