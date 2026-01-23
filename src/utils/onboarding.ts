@@ -1,4 +1,4 @@
-import { Editor, uniqueId, TLShapeId, createShapeId } from 'tldraw'
+import { Editor, TLAssetId, TLShapeId, createShapeId, uniqueId } from 'tldraw'
 
 // Onboarding image URLs - all images will be displayed at the same size
 const ONBOARDING_IMAGES = [
@@ -58,7 +58,7 @@ export const createOnboardingContent = async (editor: Editor): Promise<void> => 
     imagePositions.push({ x, y, width: displayWidth, height: displayHeight })
 
     // Create asset
-    const assetId = `asset:${uniqueId()}` as any
+    const assetId = `asset:${uniqueId()}` as TLAssetId
     editor.createAssets([
       {
         id: assetId,
@@ -90,7 +90,7 @@ export const createOnboardingContent = async (editor: Editor): Promise<void> => 
       },
       meta: {
         source: 'onboarding',
-      } as any,
+      },
     })
     shapeIds.push(shapeId)
   }

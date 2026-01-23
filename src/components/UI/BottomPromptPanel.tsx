@@ -148,7 +148,7 @@ export default function BottomPromptPanel() {
     const imageShapes = selectedShapes.filter(
       (shape): shape is TLImageShape => {
         if (shape.type !== 'image') return false
-        const meta = shape.meta as any
+        const meta = shape.meta as Record<string, unknown>
         return meta?.source !== 'generating'
       }
     )

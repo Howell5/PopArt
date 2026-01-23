@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useEditor, TLImageShape } from 'tldraw'
+import { useEditor, TLImageShape, TLShapeId } from 'tldraw'
 import { Copy, DownloadSimple, Info } from '@phosphor-icons/react'
 import type { ImageMeta } from '../../utils/imageAssets'
 
@@ -95,7 +95,7 @@ export default function FloatingToolbar() {
   const getSelectedImageDataUrl = (): string | null => {
     if (!selectedImageId) return null
 
-    const shape = editor.getShape(selectedImageId as any) as TLImageShape
+    const shape = editor.getShape(selectedImageId as TLShapeId) as TLImageShape
     if (!shape || shape.type !== 'image') return null
 
     const assetId = shape.props.assetId
@@ -111,7 +111,7 @@ export default function FloatingToolbar() {
   const getSelectedImageMeta = (): ImageMeta | null => {
     if (!selectedImageId) return null
 
-    const shape = editor.getShape(selectedImageId as any) as TLImageShape
+    const shape = editor.getShape(selectedImageId as TLShapeId) as TLImageShape
     if (!shape || shape.type !== 'image') return null
 
     return (shape.meta as unknown as ImageMeta) || null
@@ -121,12 +121,12 @@ export default function FloatingToolbar() {
   const handleCopy = () => {
     if (!selectedImageId) return
 
-    const shape = editor.getShape(selectedImageId as any) as TLImageShape
+    const shape = editor.getShape(selectedImageId as TLShapeId) as TLImageShape
     if (!shape || shape.type !== 'image') return
 
-    const newShapeId = `shape:${Date.now()}`
+    const newShapeId = `shape:${Date.now()}` as TLShapeId
     editor.createShape({
-      id: newShapeId as any,
+      id: newShapeId,
       type: 'image',
       x: shape.x + shape.props.w! + 20, // Place to the right with 20px gap
       y: shape.y,
@@ -138,7 +138,7 @@ export default function FloatingToolbar() {
       meta: shape.meta, // Copy meta as well
     })
 
-    editor.select(newShapeId as any)
+    editor.select(newShapeId)
   }
 
   // Download image

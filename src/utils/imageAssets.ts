@@ -1,4 +1,4 @@
-import { Editor, TLAssetStore, uniqueId } from 'tldraw'
+import { Editor, TLAssetStore, TLAssetId, TLShapeId, uniqueId } from 'tldraw'
 
 // Custom asset store for handling image uploads
 export const createImageAssetStore = (): TLAssetStore => {
@@ -55,12 +55,11 @@ interface AddImageOptions {
 
 // Helper function to add an image to the canvas
 export const addImageToCanvas = async (editor: Editor, file: File, options?: AddImageOptions) => {
-  try {
-    // Get position: custom or center of viewport
-    const { x, y } = options?.position ?? editor.getViewportScreenCenter()
+  // Get position: custom or center of viewport
+  const { x, y } = options?.position ?? editor.getViewportScreenCenter()
 
-    // Create asset ID (must start with "asset:" prefix)
-    const assetId = `asset:${uniqueId()}` as any
+  // Create asset ID (must start with "asset:" prefix)
+  const assetId = `asset:${uniqueId()}` as TLAssetId
 
     // Read file as data URL
     const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -129,12 +128,9 @@ export const addImageToCanvas = async (editor: Editor, file: File, options?: Add
         w: width,
         h: height,
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       meta: meta as any,
     })
-
-  } catch (error) {
-    throw error
-  }
 }
 
 // Get image dimensions from data URL
@@ -240,7 +236,7 @@ export const findNonOverlappingPosition = (
   // Get anchor shapes bounding box (combined)
   let anchorBox: BoundingBox | null = null
   for (const shapeId of anchorShapeIds) {
-    const bounds = editor.getShapePageBounds(shapeId as any)
+    const bounds = editor.getShapePageBounds(shapeId as TLShapeId)
     if (!bounds) continue
 
     if (!anchorBox) {
@@ -352,7 +348,7 @@ export const createPlaceholderShape = (editor: Editor, options: PlaceholderOptio
   const finalY = y - height / 2
 
   // Create asset for placeholder
-  const assetId = `asset:${uniqueId()}` as any
+  const assetId = `asset:${uniqueId()}` as TLAssetId
   editor.createAssets([
     {
       id: assetId,
@@ -371,7 +367,7 @@ export const createPlaceholderShape = (editor: Editor, options: PlaceholderOptio
   ])
 
   // Create placeholder shape
-  const shapeId = `shape:${uniqueId()}` as any
+  const shapeId = `shape:${uniqueId()}` as TLShapeId
   editor.createShape({
     id: shapeId,
     type: 'image',
@@ -390,7 +386,7 @@ export const createPlaceholderShape = (editor: Editor, options: PlaceholderOptio
       prompt,
       aspectRatio,
       imageSize,
-    } as any,
+    },
   })
 
   return shapeId
@@ -402,14 +398,14 @@ export const updatePlaceholderWithImage = async (
   shapeId: string,
   dataUrl: string
 ): Promise<void> => {
-  const shape = editor.getShape(shapeId as any)
+  const shape = editor.getShape(shapeId as TLShapeId)
   if (!shape || shape.type !== 'image') return
 
   // Get image dimensions
   const dimensions = await getImageDimensions(dataUrl)
 
   // Create new asset with real image
-  const newAssetId = `asset:${uniqueId()}` as any
+  const newAssetId = `asset:${uniqueId()}` as TLAssetId
   editor.createAssets([
     {
       id: newAssetId,
@@ -428,7 +424,7 @@ export const updatePlaceholderWithImage = async (
   ])
 
   // Get current meta and update it
-  const currentMeta = shape.meta as any
+  const currentMeta = shape.meta as unknown as ImageMeta
   const newMeta: ImageMeta = {
     source: 'ai-generated',
     modelId: currentMeta.modelId,
@@ -443,18 +439,19 @@ export const updatePlaceholderWithImage = async (
 
   // Update shape with new asset and meta
   editor.updateShape({
-    id: shapeId as any,
+    id: shapeId as TLShapeId,
     type: 'image',
     props: {
       assetId: newAssetId,
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     meta: newMeta as any,
   })
 }
 
 // Remove placeholder shape (on error)
 export const removePlaceholderShape = (editor: Editor, shapeId: string): void => {
-  editor.deleteShape(shapeId as any)
+  editor.deleteShape(shapeId as TLShapeId)
 }
 
 // Add default image to canvas from URL
@@ -474,7 +471,7 @@ export const addDefaultImageToCanvas = async (editor: Editor, imageUrl: string) 
     const dimensions = await getImageDimensions(dataUrl)
 
     // Create asset ID
-    const assetId = `asset:${uniqueId()}` as any
+    const assetId = `asset:${uniqueId()}` as TLAssetId
 
     // Create asset
     editor.createAssets([
@@ -525,7 +522,7 @@ export const addDefaultImageToCanvas = async (editor: Editor, imageUrl: string) 
         source: 'uploaded',
         originalWidth: dimensions.width,
         originalHeight: dimensions.height,
-      } as any,
+      },
     })
 
     // Reset zoom to 100% at current position
