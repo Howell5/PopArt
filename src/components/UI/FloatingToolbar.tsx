@@ -268,7 +268,10 @@ export default function FloatingToolbar() {
               {(meta?.source === 'ai-generated' || meta?.source === 'generating') && meta.prompt && (
                 <div className="pt-2 border-t border-gray-100">
                   <span className="text-xs text-gray-500 block mb-1">Prompt</span>
-                  <p className="text-xs text-gray-700 leading-relaxed line-clamp-4">
+                  <p
+                    className="text-xs text-gray-700 leading-relaxed max-h-24 overflow-y-auto select-text cursor-text"
+                    style={{ wordBreak: 'break-word' }}
+                  >
                     {meta.prompt}
                   </p>
                 </div>
