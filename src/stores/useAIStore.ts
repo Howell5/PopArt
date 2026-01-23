@@ -14,6 +14,21 @@ import {
   type GeminiImageSize,
 } from '../services/ai/imageGeneration'
 
+// Maximum concurrent generation tasks
+export const MAX_CONCURRENT_TASKS = 5
+
+// Generating task info
+export interface GeneratingTask {
+  id: string
+  shapeId: string
+  prompt: string
+  modelId: string
+  modelName: string
+  aspectRatio: string
+  imageSize: string
+  startedAt: number
+}
+
 interface GeneratedImage {
   id: string
   dataUrl: string
@@ -24,7 +39,7 @@ interface GeneratedImage {
 
 interface AIStore {
   // State
-  isGenerating: boolean
+  generatingTasks: Map<string, GeneratingTask>
   generatedImages: GeneratedImage[]
   error: string | null
   currentPrompt: string
@@ -35,13 +50,21 @@ interface AIStore {
   // Seedream options
   seedreamSize: string
 
+  // Computed
+  isGenerating: boolean
+  canStartNewTask: boolean
+  generatingCount: number
+
   // Actions
   setCurrentPrompt: (prompt: string) => void
   setCurrentModel: (model: ImageModel) => void
   setGeminiAspectRatio: (ratio: string) => void
   setGeminiImageSize: (size: GeminiImageSize) => void
   setSeedreamSize: (size: string) => void
-  generateImage: (prompt: string, options?: { negativePrompt?: string; referenceImages?: string[] }) => Promise<string>
+  startGenerating: (taskId: string, shapeId: string, prompt: string) => void
+  completeGenerating: (taskId: string, dataUrl: string) => void
+  failGenerating: (taskId: string, error: string) => void
+  generateImage: (prompt: string, options?: { negativePrompt?: string; referenceImages?: string[] }) => Promise<{ taskId: string; dataUrl: string }>
   clearError: () => void
   clearHistory: () => void
 }
@@ -59,7 +82,7 @@ export {
 
 export const useAIStore = create<AIStore>((set, get) => ({
   // Initial state
-  isGenerating: false,
+  generatingTasks: new Map(),
   generatedImages: [],
   error: null,
   currentPrompt: '',
@@ -67,6 +90,17 @@ export const useAIStore = create<AIStore>((set, get) => ({
   geminiAspectRatio: DEFAULT_GEMINI_ASPECT_RATIO,
   geminiImageSize: DEFAULT_GEMINI_IMAGE_SIZE,
   seedreamSize: DEFAULT_SEEDREAM_SIZE,
+
+  // Computed getters (will be updated when tasks change)
+  get isGenerating() {
+    return get().generatingTasks.size > 0
+  },
+  get canStartNewTask() {
+    return get().generatingTasks.size < MAX_CONCURRENT_TASKS
+  },
+  get generatingCount() {
+    return get().generatingTasks.size
+  },
 
   // Set current prompt
   setCurrentPrompt: (prompt: string) => {
@@ -93,10 +127,74 @@ export const useAIStore = create<AIStore>((set, get) => ({
     set({ seedreamSize: size })
   },
 
-  // Generate image
-  generateImage: async (prompt: string, options?: { negativePrompt?: string; referenceImages?: string[] }) => {
+  // Start a generating task
+  startGenerating: (taskId: string, shapeId: string, prompt: string) => {
     const { currentModel, geminiAspectRatio, geminiImageSize, seedreamSize } = get()
-    set({ isGenerating: true, error: null })
+    const isGemini = currentModel.provider === 'gemini'
+
+    const task: GeneratingTask = {
+      id: taskId,
+      shapeId,
+      prompt,
+      modelId: currentModel.id,
+      modelName: currentModel.name,
+      aspectRatio: isGemini ? geminiAspectRatio : SEEDREAM_SIZES_2K.find(s => s.value === seedreamSize)?.label || '1:1',
+      imageSize: isGemini ? geminiImageSize : seedreamSize,
+      startedAt: Date.now(),
+    }
+
+    set((state) => {
+      const newTasks = new Map(state.generatingTasks)
+      newTasks.set(taskId, task)
+      return { generatingTasks: newTasks }
+    })
+  },
+
+  // Complete a generating task
+  completeGenerating: (taskId: string, dataUrl: string) => {
+    const task = get().generatingTasks.get(taskId)
+    if (!task) return
+
+    // Create image record
+    const image: GeneratedImage = {
+      id: `img-${Date.now()}`,
+      dataUrl,
+      prompt: task.prompt,
+      modelId: task.modelId,
+      createdAt: Date.now(),
+    }
+
+    set((state) => {
+      const newTasks = new Map(state.generatingTasks)
+      newTasks.delete(taskId)
+      return {
+        generatingTasks: newTasks,
+        generatedImages: [image, ...state.generatedImages],
+      }
+    })
+  },
+
+  // Fail a generating task
+  failGenerating: (taskId: string, error: string) => {
+    set((state) => {
+      const newTasks = new Map(state.generatingTasks)
+      newTasks.delete(taskId)
+      return {
+        generatingTasks: newTasks,
+        error,
+      }
+    })
+  },
+
+  // Generate image (returns taskId and dataUrl promise)
+  generateImage: async (prompt: string, options?: { negativePrompt?: string; referenceImages?: string[] }) => {
+    const { currentModel, geminiAspectRatio, geminiImageSize, seedreamSize, canStartNewTask } = get()
+
+    if (!canStartNewTask) {
+      throw new Error(`最多同时生成 ${MAX_CONCURRENT_TASKS} 张图片`)
+    }
+
+    const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
     try {
       // Call AI service with selected model and options
@@ -115,33 +213,11 @@ export const useAIStore = create<AIStore>((set, get) => ({
       // Convert to data URL
       const dataUrl = base64ToDataUrl(result.base64, result.mimeType)
 
-      // Create image record
-      const image: GeneratedImage = {
-        id: `img-${Date.now()}`,
-        dataUrl,
-        prompt,
-        modelId: currentModel.id,
-        createdAt: Date.now(),
-      }
-
-      // Update store
-      set((state) => ({
-        generatedImages: [image, ...state.generatedImages],
-        isGenerating: false,
-      }))
-
-      return dataUrl
+      return { taskId, dataUrl }
     } catch (error) {
       console.error('Image generation error:', error)
-
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-
-      set({
-        error: errorMessage,
-        isGenerating: false,
-      })
-
-      throw error
+      throw new Error(errorMessage)
     }
   },
 

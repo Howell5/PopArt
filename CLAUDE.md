@@ -31,12 +31,13 @@ npm run preview  # Preview production build
 
 3. **AI Services**: Located in `src/services/ai/`:
    - `imageGeneration.ts` - Nebula API (Gemini & Seedream models)
-   - `backgroundRemoval.ts` - remove.bg API
-   - `imageUpscale.ts` - Real-ESRGAN via Replicate
 
-4. **UI Components**: Two main floating UI components:
+4. **UI Components**: Main floating UI components:
    - `BottomPromptPanel` - AI generation input with model selection and reference image support
-   - `FloatingToolbar` - Image actions (copy, download, upscale, remove background) positioned above selected image
+   - `FloatingToolbar` - Image actions (copy, download) positioned above selected image
+   - `SettingsModal` - API Key configuration modal
+
+5. **API Key Management**: Users must configure their own Nebula API Key via the settings modal (gear icon at bottom left). Keys are stored in localStorage (`src/utils/apiKeyStorage.ts`).
 
 ### Data Flow for Image Generation
 
@@ -45,14 +46,9 @@ npm run preview  # Preview production build
 3. Base64 response converted to data URL
 4. `addImageToCanvas()` creates tldraw asset + shape
 
-### Environment Variables
+### API Key Configuration
 
-Required in `.env.local`:
-```
-VITE_NEBULA_API_KEY=xxx      # Nebula API (required)
-VITE_REPLICATE_API_KEY=xxx   # Real-ESRGAN upscale (optional)
-VITE_REMOVE_BG_API_KEY=xxx   # remove.bg (optional)
-```
+Users configure their Nebula API Key through the in-app settings modal (no environment variables needed). The key is stored in localStorage.
 
 ## Code Patterns
 

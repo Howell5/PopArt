@@ -1,17 +1,40 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useEditor, TLImageShape } from 'tldraw'
-import { upscaleImage } from '../../services/ai/imageUpscale'
-import { removeBackground } from '../../services/ai/backgroundRemoval'
-import { base64ToDataUrl } from '../../services/ai/imageGeneration'
-import { Copy, DownloadSimple, MagnifyingGlassPlus, Eraser, SpinnerGap } from '@phosphor-icons/react'
+import { Copy, DownloadSimple, Info } from '@phosphor-icons/react'
+import type { ImageMeta } from '../../utils/imageAssets'
+
+// Format timestamp to relative time
+function formatRelativeTime(timestamp: number): string {
+  const now = Date.now()
+  const diff = now - timestamp
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes} 分钟前`
+  if (hours < 24) return `${hours} 小时前`
+  return `${days} 天前`
+}
 
 export default function FloatingToolbar() {
   const editor = useEditor()
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null)
   const [toolbarPosition, setToolbarPosition] = useState<{ x: number; y: number } | null>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [processingType, setProcessingType] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [showInfo, setShowInfo] = useState(false)
+  const infoRef = useRef<HTMLDivElement>(null)
+
+  // Close info popover when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (infoRef.current && !infoRef.current.contains(event.target as Node)) {
+        setShowInfo(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Track dragging state using tldraw's pointer state
   useEffect(() => {
@@ -51,6 +74,7 @@ export default function FloatingToolbar() {
     } else {
       setSelectedImageId(null)
       setToolbarPosition(null)
+      setShowInfo(false)
     }
   }, [editor])
 
@@ -67,18 +91,6 @@ export default function FloatingToolbar() {
     }
   }, [editor, updateSelection])
 
-  // Helper function to get image dimensions
-  const getImageDimensions = (dataUrl: string): Promise<{ width: number; height: number }> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image()
-      img.onload = () => {
-        resolve({ width: img.width, height: img.height })
-      }
-      img.onerror = reject
-      img.src = dataUrl
-    })
-  }
-
   // Get the image data URL from selected image
   const getSelectedImageDataUrl = (): string | null => {
     if (!selectedImageId) return null
@@ -93,6 +105,16 @@ export default function FloatingToolbar() {
     if (!asset || asset.type !== 'image') return null
 
     return asset.props.src || null
+  }
+
+  // Get meta info from selected image
+  const getSelectedImageMeta = (): ImageMeta | null => {
+    if (!selectedImageId) return null
+
+    const shape = editor.getShape(selectedImageId as any) as TLImageShape
+    if (!shape || shape.type !== 'image') return null
+
+    return (shape.meta as unknown as ImageMeta) || null
   }
 
   // Duplicate image and place it to the right of the original
@@ -113,6 +135,7 @@ export default function FloatingToolbar() {
         w: shape.props.w,
         h: shape.props.h,
       },
+      meta: shape.meta, // Copy meta as well
     })
 
     editor.select(newShapeId as any)
@@ -136,168 +159,12 @@ export default function FloatingToolbar() {
     }
   }
 
-  const handleUpscale = async (scale: 2 | 4) => {
-    if (!selectedImageId || isProcessing) return
-
-    try {
-      setIsProcessing(true)
-      setProcessingType(`upscale-${scale}x`)
-
-      const shape = editor.getShape(selectedImageId as any) as TLImageShape
-      if (!shape || shape.type !== 'image') {
-        throw new Error('Selected shape is not an image')
-      }
-
-      const assetId = shape.props.assetId
-      if (!assetId) {
-        throw new Error('No asset ID')
-      }
-      const asset = editor.getAsset(assetId)
-      if (!asset || asset.type !== 'image') {
-        throw new Error('Asset not found')
-      }
-
-      const imageDataUrl = asset.props.src!
-
-      const result = await upscaleImage({
-        imageDataUrl,
-        scale,
-      })
-
-      // Fetch the upscaled image and convert to data URL
-      const response = await fetch(result.url)
-      const blob = await response.blob()
-      const upscaledDataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onloadend = () => resolve(reader.result as string)
-        reader.onerror = reject
-        reader.readAsDataURL(blob)
-      })
-
-      const dimensions = await getImageDimensions(upscaledDataUrl)
-
-      const newAssetId = `asset:${Date.now()}`
-      editor.createAssets([
-        {
-          id: newAssetId as any,
-          type: 'image',
-          typeName: 'asset',
-          props: {
-            name: `upscaled-${scale}x.png`,
-            src: upscaledDataUrl,
-            w: dimensions.width,
-            h: dimensions.height,
-            mimeType: 'image/png',
-            isAnimated: false,
-          },
-          meta: {},
-        },
-      ])
-
-      // Create new image shape next to the original (instead of replacing)
-      const newWidth = shape.props.w! * scale
-      const newHeight = shape.props.h! * scale
-      const newShapeId = `shape:${Date.now()}`
-
-      editor.createShape({
-        id: newShapeId as any,
-        type: 'image',
-        x: shape.x + shape.props.w! + 20, // Place to the right of original
-        y: shape.y,
-        props: {
-          assetId: newAssetId as any,
-          w: newWidth,
-          h: newHeight,
-        },
-      })
-
-      // Select the new shape
-      editor.select(newShapeId as any)
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to upscale image')
-    } finally {
-      setIsProcessing(false)
-      setProcessingType(null)
-    }
-  }
-
-  const handleRemoveBackground = async () => {
-    if (!selectedImageId || isProcessing) return
-
-    try {
-      setIsProcessing(true)
-      setProcessingType('remove-bg')
-
-      const shape = editor.getShape(selectedImageId as any) as TLImageShape
-      if (!shape || shape.type !== 'image') {
-        throw new Error('Selected shape is not an image')
-      }
-
-      const assetId = shape.props.assetId
-      if (!assetId) {
-        throw new Error('No asset ID')
-      }
-      const asset = editor.getAsset(assetId)
-      if (!asset || asset.type !== 'image') {
-        throw new Error('Asset not found')
-      }
-
-      const imageDataUrl = asset.props.src!
-
-      const result = await removeBackground({
-        imageDataUrl,
-      })
-
-      const processedDataUrl = base64ToDataUrl(result.base64, result.mimeType)
-      const dimensions = await getImageDimensions(processedDataUrl)
-
-      const newAssetId = `asset:${Date.now()}`
-      editor.createAssets([
-        {
-          id: newAssetId as any,
-          type: 'image',
-          typeName: 'asset',
-          props: {
-            name: 'no-background.png',
-            src: processedDataUrl,
-            w: dimensions.width,
-            h: dimensions.height,
-            mimeType: result.mimeType,
-            isAnimated: false,
-          },
-          meta: {},
-        },
-      ])
-
-      // Create new image shape next to the original (instead of replacing)
-      const newShapeId = `shape:${Date.now()}`
-
-      editor.createShape({
-        id: newShapeId as any,
-        type: 'image',
-        x: shape.x + shape.props.w! + 20, // Place to the right of original
-        y: shape.y,
-        props: {
-          assetId: newAssetId as any,
-          w: shape.props.w!, // Keep same display size
-          h: shape.props.h!,
-        },
-      })
-
-      // Select the new shape
-      editor.select(newShapeId as any)
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to remove background')
-    } finally {
-      setIsProcessing(false)
-      setProcessingType(null)
-    }
-  }
-
   // Hide toolbar when no image selected, no position, or during drag
   if (!selectedImageId || !toolbarPosition || isDragging) {
     return null
   }
+
+  const meta = getSelectedImageMeta()
 
   return (
     <div
@@ -311,9 +178,8 @@ export default function FloatingToolbar() {
       {/* Copy */}
       <button
         onClick={handleCopy}
-        disabled={isProcessing}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        title="Copy to clipboard"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+        title="复制图片"
       >
         <Copy className="w-4 h-4" weight="bold" />
         <span>复制</span>
@@ -322,9 +188,8 @@ export default function FloatingToolbar() {
       {/* Download */}
       <button
         onClick={handleDownload}
-        disabled={isProcessing}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        title="Download image"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+        title="下载图片"
       >
         <DownloadSimple className="w-4 h-4" weight="bold" />
         <span>下载</span>
@@ -333,52 +198,88 @@ export default function FloatingToolbar() {
       {/* Divider */}
       <div className="w-px h-6 bg-gray-200 mx-1" />
 
-      {/* Upscale 2x - disabled */}
-      <button
-        onClick={() => handleUpscale(2)}
-        disabled={true}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-400 rounded-full transition-colors opacity-50 cursor-not-allowed"
-        title="Upscale 2x (coming soon)"
-      >
-        <MagnifyingGlassPlus className="w-4 h-4" />
-        <span>2x</span>
-      </button>
+      {/* Info */}
+      <div className="relative" ref={infoRef}>
+        <button
+          onClick={() => setShowInfo(!showInfo)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+            showInfo ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-100'
+          }`}
+          title="图片信息"
+        >
+          <Info className="w-4 h-4" weight="bold" />
+          <span>信息</span>
+        </button>
 
-      {/* Upscale 4x - disabled */}
-      <button
-        onClick={() => handleUpscale(4)}
-        disabled={true}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-400 rounded-full transition-colors opacity-50 cursor-not-allowed"
-        title="Upscale 4x (coming soon)"
-      >
-        <MagnifyingGlassPlus className="w-4 h-4" />
-        <span>4x</span>
-      </button>
+        {/* Info Popover */}
+        {showInfo && (
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">图片信息</p>
+            </div>
+            <div className="px-4 py-3 space-y-2.5">
+              {/* Source */}
+              <div className="flex justify-between items-start">
+                <span className="text-xs text-gray-500">来源</span>
+                <span className="text-xs text-gray-900 font-medium">
+                  {meta?.source === 'ai-generated' ? 'AI 生成' : '本地上传'}
+                </span>
+              </div>
 
-      {/* Divider */}
-      <div className="w-px h-6 bg-gray-200 mx-1" />
+              {/* Model (AI only) */}
+              {meta?.source === 'ai-generated' && meta.modelName && (
+                <div className="flex justify-between items-start">
+                  <span className="text-xs text-gray-500">模型</span>
+                  <span className="text-xs text-gray-900 font-medium">{meta.modelName}</span>
+                </div>
+              )}
 
-      {/* Remove Background */}
-      <button
-        onClick={handleRemoveBackground}
-        disabled={isProcessing}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        title="Remove Background"
-      >
-        {isProcessing && processingType === 'remove-bg' ? (
-          <SpinnerGap className="w-4 h-4 animate-spin" />
-        ) : (
-          <Eraser className="w-4 h-4" weight="bold" />
+              {/* Resolution */}
+              {meta?.originalWidth && meta?.originalHeight && (
+                <div className="flex justify-between items-start">
+                  <span className="text-xs text-gray-500">分辨率</span>
+                  <span className="text-xs text-gray-900 font-medium">
+                    {meta.originalWidth} × {meta.originalHeight}
+                  </span>
+                </div>
+              )}
+
+              {/* Aspect Ratio (AI only) */}
+              {meta?.source === 'ai-generated' && meta.aspectRatio && (
+                <div className="flex justify-between items-start">
+                  <span className="text-xs text-gray-500">比例</span>
+                  <span className="text-xs text-gray-900 font-medium">{meta.aspectRatio}</span>
+                </div>
+              )}
+
+              {/* Generated At (AI only) */}
+              {meta?.source === 'ai-generated' && meta.generatedAt && (
+                <div className="flex justify-between items-start">
+                  <span className="text-xs text-gray-500">生成时间</span>
+                  <span className="text-xs text-gray-900 font-medium">
+                    {formatRelativeTime(meta.generatedAt)}
+                  </span>
+                </div>
+              )}
+
+              {/* Prompt (AI only) */}
+              {meta?.source === 'ai-generated' && meta.prompt && (
+                <div className="pt-2 border-t border-gray-100">
+                  <span className="text-xs text-gray-500 block mb-1">Prompt</span>
+                  <p className="text-xs text-gray-700 leading-relaxed line-clamp-4">
+                    {meta.prompt}
+                  </p>
+                </div>
+              )}
+
+              {/* No meta available */}
+              {!meta && (
+                <p className="text-xs text-gray-500">暂无信息</p>
+              )}
+            </div>
+          </div>
         )}
-        <span>移除背景</span>
-      </button>
-
-      {/* Processing indicator */}
-      {isProcessing && (
-        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black/75 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-          处理中...
-        </div>
-      )}
+      </div>
     </div>
   )
 }

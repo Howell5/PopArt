@@ -1,3 +1,5 @@
+import { getNebulaApiKey } from '../../utils/apiKeyStorage'
+
 // Configuration for AI image generation - Nebula API
 const NEBULA_BASE_URL = 'https://llm.ai-nebula.com/v1'
 
@@ -89,13 +91,11 @@ export const DEFAULT_GEMINI_ASPECT_RATIO = '1:1'
 export const DEFAULT_GEMINI_IMAGE_SIZE: GeminiImageSize = '2K'
 export const DEFAULT_SEEDREAM_SIZE = '2048x2048'
 
-// Get API key from environment
+// Get API key from localStorage
 const getApiKey = () => {
-  const key = import.meta.env.VITE_NEBULA_API_KEY
+  const key = getNebulaApiKey()
   if (!key) {
-    throw new Error(
-      'VITE_NEBULA_API_KEY is not configured. Please add your Nebula API key to .env.local'
-    )
+    throw new Error('API Key 未配置，请点击左下角设置按钮配置')
   }
   return key
 }

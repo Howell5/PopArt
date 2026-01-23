@@ -3,15 +3,25 @@ import 'tldraw/tldraw.css'
 import { createImageAssetStore, addImageToCanvas, isImageFile, addDefaultImageToCanvas } from '../../utils/imageAssets'
 import FloatingToolbar from '../UI/FloatingToolbar'
 import BottomPromptPanel from '../UI/BottomPromptPanel'
-import { useEffect } from 'react'
+import SettingsModal from '../UI/SettingsModal'
+import GeneratingOverlay from '../UI/GeneratingOverlay'
+import { useEffect, useState, useMemo } from 'react'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
-// import { Sparkle } from '@phosphor-icons/react'
+import { hasNebulaApiKey } from '../../utils/apiKeyStorage'
+import { Gear } from '@phosphor-icons/react'
 
 // Default image URL - Cézanne's "A Painter at Work"
 const DEFAULT_IMAGE_URL = '/default-image.jpg'
 
 // Key for localStorage to track if default image was loaded
 const DEFAULT_IMAGE_LOADED_KEY = 'popart-default-image-loaded'
+
+// Global event emitter for settings modal
+let openSettingsCallback: (() => void) | null = null
+
+export const openSettings = () => {
+  openSettingsCallback?.()
+}
 
 // Component to handle drag and drop and keyboard shortcuts
 function DropHandler() {
@@ -74,6 +84,7 @@ function InFrontOfTheCanvas() {
     <>
       <FloatingToolbar />
       <BottomPromptPanel />
+      <GeneratingOverlay />
       {/* Floating Logo - positioned to align with tldraw menu bar */}
       <div className="fixed top-[18px] left-4 z-[200] flex items-center gap-2 bg-white px-2.5 py-1.5 rounded-lg shadow-sm border border-gray-200">
         <div className="w-6 h-6 rounded-md overflow-hidden flex items-center justify-center">
@@ -104,17 +115,51 @@ function InFrontOfTheCanvas() {
         </div>
         <span className="text-sm font-semibold text-gray-700">PopArt</span>
       </div>
+      {/* Settings button - positioned at bottom right */}
+      <button
+        onClick={() => openSettings()}
+        className="fixed bottom-4 right-4 z-[200] p-2 bg-white rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors"
+        title="设置"
+      >
+        <Gear size={18} className="text-gray-500" />
+      </button>
     </>
   )
 }
 
-// Custom tldraw components configuration
+// Stable components configuration - defined outside component to prevent recreation
 const components: TLComponents = {
   InFrontOfTheCanvas: InFrontOfTheCanvas,
 }
 
 export default function TldrawCanvas() {
-  const assetStore = createImageAssetStore()
+  const assetStore = useMemo(() => createImageAssetStore(), [])
+  const [showSettings, setShowSettings] = useState(false)
+  const [needsApiKey, setNeedsApiKey] = useState(false)
+
+  // Register the callback for opening settings
+  useEffect(() => {
+    openSettingsCallback = () => setShowSettings(true)
+    return () => {
+      openSettingsCallback = null
+    }
+  }, [])
+
+  // Check if API key is configured on mount
+  useEffect(() => {
+    if (!hasNebulaApiKey()) {
+      setNeedsApiKey(true)
+      setShowSettings(true)
+    }
+  }, [])
+
+  const handleCloseSettings = () => {
+    setShowSettings(false)
+    // After closing, check if key was set
+    if (hasNebulaApiKey()) {
+      setNeedsApiKey(false)
+    }
+  }
 
   return (
     <div className="w-full h-full relative tldraw-layout-custom">
@@ -125,6 +170,11 @@ export default function TldrawCanvas() {
       >
         <DropHandler />
       </Tldraw>
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={handleCloseSettings}
+        required={needsApiKey}
+      />
     </div>
   )
 }
