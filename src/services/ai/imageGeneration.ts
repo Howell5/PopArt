@@ -1,7 +1,7 @@
-import { getNebulaApiKey } from '../../utils/apiKeyStorage'
+import { getApiKey as getStoredApiKey } from '../../utils/apiKeyStorage'
 
-// Configuration for AI image generation - Nebula API
-const NEBULA_BASE_URL = 'https://llm.ai-nebula.com/v1'
+// Configuration for AI image generation
+const API_BASE_URL = 'https://llm.ai-nebula.com/v1'
 
 // Model provider types
 export type ModelProvider = 'gemini' | 'seedream'
@@ -93,9 +93,9 @@ export const DEFAULT_SEEDREAM_SIZE = '2048x2048'
 
 // Get API key from localStorage
 const getApiKey = () => {
-  const key = getNebulaApiKey()
+  const key = getStoredApiKey()
   if (!key) {
-    throw new Error('API Key 未配置，请点击左下角设置按钮配置')
+    throw new Error('API Key 未配置，请点击右下角设置按钮配置')
   }
   return key
 }
@@ -117,8 +117,8 @@ export interface GeneratedImage {
   mimeType: string
 }
 
-// Nebula API response format
-interface NebulaResponse {
+// API response format
+interface ApiResponse {
   data: Array<{
     url?: string
     b64_json?: string
@@ -228,7 +228,7 @@ const downloadImageAsBase64 = async (url: string): Promise<string> => {
 }
 
 /**
- * Generate an image using Nebula API (Gemini or Seedream models)
+ * Generate an image using AI API (Gemini or Seedream models)
  */
 export const generateImage = async (params: GenerateImageParams): Promise<GeneratedImage> => {
   try {
@@ -254,8 +254,8 @@ export const generateImage = async (params: GenerateImageParams): Promise<Genera
             referenceImages: params.referenceImages,
           })
 
-    // Call Nebula API
-    const response = await fetch(`${NEBULA_BASE_URL}/images/generations`, {
+    // Call API
+    const response = await fetch(`${API_BASE_URL}/images/generations`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${getApiKey()}`,
@@ -266,10 +266,10 @@ export const generateImage = async (params: GenerateImageParams): Promise<Genera
 
     if (!response.ok) {
       const errorText = await response.text()
-      throw new Error(`Nebula API request failed: ${response.status} - ${errorText}`)
+      throw new Error(`API request failed: ${response.status} - ${errorText}`)
     }
 
-    const result: NebulaResponse = await response.json()
+    const result: ApiResponse = await response.json()
 
     // Extract image data from response
     const imageData = result.data?.[0]

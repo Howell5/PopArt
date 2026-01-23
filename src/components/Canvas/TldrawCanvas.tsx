@@ -8,7 +8,7 @@ import SettingsModal from '../UI/SettingsModal'
 import GeneratingOverlay from '../UI/GeneratingOverlay'
 import { useEffect, useState, useMemo } from 'react'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
-import { hasNebulaApiKey } from '../../utils/apiKeyStorage'
+import { hasApiKey } from '../../utils/apiKeyStorage'
 import { Gear } from '@phosphor-icons/react'
 
 // Key for localStorage to track if onboarding was shown
@@ -144,7 +144,7 @@ export default function TldrawCanvas() {
 
   // Check if API key is configured on mount - show settings if not
   useEffect(() => {
-    if (!hasNebulaApiKey()) {
+    if (!hasApiKey()) {
       setShowSettings(true)
     }
   }, [])

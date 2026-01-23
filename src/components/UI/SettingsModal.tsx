@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Gear, X } from '@phosphor-icons/react'
-import { getNebulaApiKey, setNebulaApiKey } from '../../utils/apiKeyStorage'
+import { getApiKey, setApiKey as saveApiKey } from '../../utils/apiKeyStorage'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -14,7 +14,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // Load existing key when modal opens
   useEffect(() => {
     if (isOpen) {
-      const existingKey = getNebulaApiKey()
+      const existingKey = getApiKey()
       setApiKey(existingKey || '')
       setError('')
     }
@@ -28,7 +28,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       return
     }
 
-    setNebulaApiKey(trimmedKey)
+    saveApiKey(trimmedKey)
     setError('')
     onClose()
   }
@@ -75,7 +75,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nebula API Key
+              API Key
             </label>
             <input
               type="password"
