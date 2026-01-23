@@ -224,10 +224,12 @@ export const findNonOverlappingPosition = (
   const gap = options?.gap ?? 30
   const excludeIds = new Set(options?.excludeShapeIds ?? [])
 
-  // Get all existing shape bounding boxes (excluding specified shapes)
+  // Get all existing shape bounding boxes (excluding only explicitly excluded shapes)
+  // NOTE: Anchor shapes ARE included in collision detection - they're only used to determine
+  // the reference point for placement direction, not to be excluded from overlap checks
   const allShapes = editor.getCurrentPageShapes()
   const existingBoxes: BoundingBox[] = allShapes
-    .filter((shape) => !excludeIds.has(shape.id) && !anchorShapeIds.includes(shape.id))
+    .filter((shape) => !excludeIds.has(shape.id))
     .map((shape) => {
       const bounds = editor.getShapePageBounds(shape.id)
       if (!bounds) return null
@@ -253,29 +255,31 @@ export const findNonOverlappingPosition = (
     }
   }
 
-  // If no anchor, use viewport center as virtual anchor point
+  // If no anchor shapes, use viewport center as virtual anchor point
+  // and try placing centered first (only when no real anchor shapes)
   if (!anchorBox) {
     // Get viewport center in page coordinates
     const viewportPageBounds = editor.getViewportPageBounds()
     const centerX = viewportPageBounds.x + viewportPageBounds.w / 2
     const centerY = viewportPageBounds.y + viewportPageBounds.h / 2
-    // Create a zero-size anchor at viewport center
+
+    // Try placing at viewport center first
+    const centeredCandidate: BoundingBox = {
+      x: centerX - newWidth / 2,
+      y: centerY - newHeight / 2,
+      width: newWidth,
+      height: newHeight,
+    }
+
+    if (!overlapsAny(centeredCandidate, existingBoxes, gap)) {
+      return { x: centeredCandidate.x, y: centeredCandidate.y }
+    }
+
+    // Create a zero-size anchor at viewport center for directional search
     anchorBox = { x: centerX, y: centerY, width: 0, height: 0 }
   }
 
-  // First, try placing centered on the anchor (works for zero-size virtual anchor)
-  const centeredCandidate: BoundingBox = {
-    x: anchorBox.x + anchorBox.width / 2 - newWidth / 2,
-    y: anchorBox.y + anchorBox.height / 2 - newHeight / 2,
-    width: newWidth,
-    height: newHeight,
-  }
-
-  if (!overlapsAny(centeredCandidate, existingBoxes, gap)) {
-    return { x: centeredCandidate.x, y: centeredCandidate.y }
-  }
-
-  // Try each direction, with increasing distance if needed
+  // Try each direction around the anchor, with increasing distance if needed
   const maxAttempts = 10
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const multiplier = attempt + 1
