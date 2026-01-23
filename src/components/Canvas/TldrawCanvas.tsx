@@ -133,7 +133,6 @@ const components: TLComponents = {
 export default function TldrawCanvas() {
   const assetStore = useMemo(() => createImageAssetStore(), [])
   const [showSettings, setShowSettings] = useState(false)
-  const [needsApiKey, setNeedsApiKey] = useState(false)
 
   // Register the callback for opening settings
   useEffect(() => {
@@ -143,20 +142,15 @@ export default function TldrawCanvas() {
     }
   }, [])
 
-  // Check if API key is configured on mount
+  // Check if API key is configured on mount - show settings if not
   useEffect(() => {
     if (!hasNebulaApiKey()) {
-      setNeedsApiKey(true)
       setShowSettings(true)
     }
   }, [])
 
   const handleCloseSettings = () => {
     setShowSettings(false)
-    // After closing, check if key was set
-    if (hasNebulaApiKey()) {
-      setNeedsApiKey(false)
-    }
   }
 
   return (
@@ -171,7 +165,6 @@ export default function TldrawCanvas() {
       <SettingsModal
         isOpen={showSettings}
         onClose={handleCloseSettings}
-        required={needsApiKey}
       />
     </div>
   )

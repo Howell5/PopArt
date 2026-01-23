@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Gear, X } from '@phosphor-icons/react'
-import { getNebulaApiKey, setNebulaApiKey, hasNebulaApiKey } from '../../utils/apiKeyStorage'
+import { getNebulaApiKey, setNebulaApiKey } from '../../utils/apiKeyStorage'
 
 interface SettingsModalProps {
   isOpen: boolean
   onClose: () => void
-  /** If true, user cannot close the modal without saving a valid key */
-  required?: boolean
 }
 
-export default function SettingsModal({ isOpen, onClose, required = false }: SettingsModalProps) {
+export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [apiKey, setApiKey] = useState('')
   const [error, setError] = useState('')
 
@@ -36,17 +34,13 @@ export default function SettingsModal({ isOpen, onClose, required = false }: Set
   }
 
   const handleClose = () => {
-    if (required && !hasNebulaApiKey()) {
-      setError('请先配置 API Key 才能使用')
-      return
-    }
     onClose()
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSave()
-    } else if (e.key === 'Escape' && !required) {
+    } else if (e.key === 'Escape') {
       handleClose()
     }
   }
@@ -69,14 +63,12 @@ export default function SettingsModal({ isOpen, onClose, required = false }: Set
             <Gear size={20} className="text-gray-600" />
             <h2 className="text-lg font-semibold text-gray-900">设置 API Key</h2>
           </div>
-          {!required && (
-            <button
-              onClick={handleClose}
-              className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X size={20} className="text-gray-500" />
-            </button>
-          )}
+          <button
+            onClick={handleClose}
+            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X size={20} className="text-gray-500" />
+          </button>
         </div>
 
         {/* Content */}
